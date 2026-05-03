@@ -11,86 +11,75 @@
 
 html, body {
   height: 100%;
+  background: #000000;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  background: #0a0a0a;
-  color: #ffffff;
-}
-
-body {
   overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
 }
 
 .app {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  background: #000000;
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: none;
-  background: #0a0a0a;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* SCREENS */
 .screen {
-  min-height: 100vh;
-  padding: 0 20px 40px;
+  padding-bottom: 48px;
 }
 
-.home-screen {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* ─── HERO ─────────────────────────────────────── */
 
-.inner-screen {
-  padding-top: 60px;
-  padding-bottom: 60px;
-}
-
-/* HERO */
 .home-hero {
-  padding: 60px 24px 24px;
-  background: #0a0a0a;
+  padding: 56px 20px 20px;
 }
 
 .hero-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;
-  font-size: 100px;
-  line-height: 0.9;
-  letter-spacing: -2px;
-  color: #ffffff;
+  font-size: clamp(110px, 28vw, 140px);
+  line-height: 0.82;
+  letter-spacing: -4px;
   text-transform: uppercase;
-  margin-bottom: 20px;
+  color: #ffffff;
+  width: 100%;
 }
 
 .hero-divider {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
+  gap: 14px;
+  margin-top: 18px;
 }
 
 .hero-line {
   flex: 1;
   height: 1px;
-  background: #333;
+  background: #222;
 }
 
 .hero-sub {
   font-family: 'Barlow', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
-  letter-spacing: 4px;
+  letter-spacing: 7px;
   color: #666;
   white-space: nowrap;
+  text-transform: uppercase;
 }
 
-/* NAV LIST */
+/* ─── NAV LIST ──────────────────────────────────── */
+
 .nav-list {
-  padding: 16px 16px 8px;
+  padding: 24px 20px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -98,33 +87,34 @@ body {
 
 .nav-row {
   width: 100%;
-  background: #141414;
-  border: 1px solid #222;
-  border-radius: 14px;
-  padding: 18px 20px;
+  background: #111111;
+  border: 1px solid #1f1f1f;
+  border-radius: 16px;
+  padding: 20px 22px;
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   cursor: pointer;
-  transition: background 0.1s;
   text-align: left;
+  transition: background 0.12s;
+  min-height: 78px;
 }
 
 .nav-row:active {
-  background: #1e1e1e;
+  background: #1a1a1a;
 }
 
 .nav-row-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 
 .nav-icon-circle {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
-  border: 1px solid #333;
+  border: 1px solid #2a2a2a;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,35 +122,37 @@ body {
 }
 
 .nav-icon {
-  font-size: 18px;
-  color: #ffffff;
+  font-size: 22px;
+  color: #fff;
   line-height: 1;
 }
 
 .nav-row-label {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
-  font-size: 22px;
-  letter-spacing: 2px;
-  color: #ffffff;
+  font-size: 24px;
+  letter-spacing: 2.5px;
+  color: #fff;
+  text-transform: uppercase;
 }
 
 .nav-chevron {
-  font-size: 24px;
-  color: #444;
+  color: #333;
+  font-size: 28px;
   line-height: 1;
+  font-weight: 300;
 }
 
-/* RECENT */
+/* ─── RECENT SESSIONS ───────────────────────────── */
+
 .recent-section {
-  padding: 16px 16px 32px;
-  flex: 1;
+  padding: 8px 20px 40px;
 }
 
 .recent-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 14px;
 }
 
@@ -172,106 +164,129 @@ body {
 
 .recent-bar {
   width: 3px;
-  height: 16px;
-  background: #ffffff;
+  height: 18px;
+  background: #fff;
   border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .recent-label {
   font-family: 'Barlow', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 3px;
-  color: #888;
+  letter-spacing: 4px;
+  color: #999;
+  text-transform: uppercase;
 }
 
 .view-all-btn {
   background: none;
   border: none;
   font-family: 'Barlow', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: #555;
+  color: #444;
   cursor: pointer;
+  text-transform: uppercase;
 }
 
-/* SESSION ROWS */
+/* ─── SESSION ROWS ──────────────────────────────── */
+
 .session-row {
   width: 100%;
-  background: #141414;
-  border: 1px solid #1e1e1e;
-  border-radius: 12px;
-  padding: 14px 16px;
+  background: #111111;
+  border: 1px solid #1f1f1f;
+  border-radius: 14px;
+  padding: 16px 18px;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 14px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.1s;
+  transition: background 0.12s;
 }
 
 .session-row:active {
-  background: #1e1e1e;
+  background: #1a1a1a;
 }
 
 .session-row-icon {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1px solid #2a2a2a;
-  background: #0f0f0f;
+  border: 1px solid #222;
+  background: #0a0a0a;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
+  color: #666;
   flex-shrink: 0;
 }
 
 .session-row-info {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
   min-width: 0;
 }
 
 .session-row-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 1px;
-  color: #ffffff;
+  font-size: 16px;
+  letter-spacing: 1.5px;
+  color: #fff;
+  text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
 }
 
 .session-row-date {
   font-family: 'Barlow', sans-serif;
   font-size: 11px;
   color: #555;
+  margin-top: 4px;
   letter-spacing: 1px;
+  display: block;
 }
 
 .session-tag {
-  background: #1e1e1e;
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  padding: 4px 8px;
   font-family: 'Barlow', sans-serif;
   font-size: 9px;
   font-weight: 600;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  border: 1px solid #222;
+  padding: 6px 10px;
+  border-radius: 6px;
   color: #777;
   white-space: nowrap;
   flex-shrink: 0;
+  text-transform: uppercase;
 }
 
-/* INNER SCREENS */
+/* ─── EMPTY STATE ───────────────────────────────── */
+
+.empty-state {
+  font-family: 'Barlow', sans-serif;
+  font-size: 13px;
+  color: #2a2a2a;
+  margin-top: 40px;
+  text-align: center;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+/* ─── INNER SCREENS ─────────────────────────────── */
+
+.inner-screen {
+  padding: 56px 20px 60px;
+}
+
 .inner-header {
-  margin-bottom: 32px;
+  margin-bottom: 36px;
 }
 
 .inner-label {
@@ -279,40 +294,45 @@ body {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 3px;
-  color: #555;
-  margin-bottom: 6px;
+  color: #444;
+  margin-bottom: 8px;
   text-transform: uppercase;
+  display: block;
 }
 
 .inner-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;
-  font-size: 64px;
-  line-height: 0.9;
-  letter-spacing: -1px;
-  color: #ffffff;
+  font-size: 80px;
+  line-height: 0.85;
+  letter-spacing: -2px;
+  color: #fff;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  display: block;
+  margin-bottom: 10px;
 }
 
-/* BACK BUTTON */
+/* ─── BACK BUTTON ───────────────────────────────── */
+
 .btn-back {
   background: none;
   border: none;
   font-family: 'Barlow', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: #555;
+  color: #444;
   cursor: pointer;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
   padding: 0;
   display: block;
+  text-transform: uppercase;
 }
 
-/* FORM */
+/* ─── FORM ──────────────────────────────────────── */
+
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 
 .form-label {
@@ -323,98 +343,95 @@ body {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 2px;
-  color: #555;
-  margin-bottom: 8px;
+  color: #444;
+  margin-bottom: 10px;
   text-transform: uppercase;
 }
 
 .form-input {
   width: 100%;
-  padding: 14px 16px;
-  background: #141414;
-  border: 1px solid #222;
-  border-radius: 10px;
-  color: #ffffff;
+  padding: 16px 18px;
+  background: #111111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  color: #fff;
   font-size: 15px;
   font-family: 'Barlow', sans-serif;
   appearance: none;
   -webkit-appearance: none;
   outline: none;
+  transition: border-color 0.15s;
 }
 
 .form-input:focus {
-  border-color: #444;
+  border-color: #333;
 }
 
 .form-input.error {
-  border-color: #8B0000;
+  border-color: #6b0000;
 }
 
 .form-input option {
-  background: #141414;
+  background: #111111;
 }
 
 .textarea {
-  min-height: 160px;
+  min-height: 180px;
   resize: vertical;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .error-msg {
-  color: #cc3333;
+  color: #aa2222;
   font-size: 10px;
   letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
-/* BUTTONS */
+/* ─── PRIMARY BUTTON ────────────────────────────── */
+
 .btn-primary {
   width: 100%;
-  padding: 18px;
-  background: #ffffff;
-  color: #000000;
+  padding: 20px;
+  background: #fff;
+  color: #000;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 18px;
   font-weight: 700;
-  letter-spacing: 3px;
+  letter-spacing: 4px;
   cursor: pointer;
-  margin-top: 8px;
+  margin-top: 10px;
+  text-transform: uppercase;
+  transition: background 0.12s;
 }
 
 .btn-primary:active {
-  background: #d0d0d0;
+  background: #cccccc;
 }
 
-/* TECHNIQUE INFO */
+/* ─── TECHNIQUE SCREEN ──────────────────────────── */
+
 .technique-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .technique-count {
   font-family: 'Barlow', sans-serif;
   font-size: 11px;
-  color: #555;
+  color: #444;
   letter-spacing: 1px;
 }
 
-/* LOG DETAIL */
+/* ─── LOG DETAIL ────────────────────────────────── */
+
 .log-notes {
   font-family: 'Barlow', sans-serif;
   font-size: 15px;
-  color: #aaa;
-  line-height: 1.8;
+  color: #999;
+  line-height: 1.9;
   white-space: pre-wrap;
-}
-
-/* EMPTY STATE */
-.empty-state {
-  font-family: 'Barlow', sans-serif;
-  font-size: 13px;
-  color: #333;
-  margin-top: 60px;
-  text-align: center;
-  letter-spacing: 1px;
 }
