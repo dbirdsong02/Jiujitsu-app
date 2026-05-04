@@ -44,7 +44,7 @@ html, body {
 .hero-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;
-  font-size: clamp(70px, 18vw, 90px);
+  font-size: clamp(110px, 28vw, 140px);
   line-height: 0.82;
   letter-spacing: -4px;
   text-transform: uppercase;
@@ -530,4 +530,89 @@ html, body {
   letter-spacing: 2px;
   color: #333;
   cursor: pointer;
+}
+
+/* NOTES TOGGLE */
+.notes-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.notes-toggle {
+  display: flex;
+  gap: 4px;
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.toggle-btn {
+  background: none;
+  border: none;
+  color: #444;
+  font-family: 'Barlow', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.toggle-btn.active {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* MIC BUTTON */
+.voice-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.mic-btn {
+  width: 100%;
+  padding: 20px;
+  background: #111111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.mic-btn.recording {
+  background: #1a0000;
+  border-color: #6b0000;
+  color: #ff4444;
+}
+
+.mic-btn:disabled {
+  opacity: 0.6;
+}
+
+/* OPTIONAL LABEL */
+.optional-label {
+  font-size: 9px;
+  color: #333;
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+
+/* AI DESC */
+.ai-desc {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  color: #444;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  line-height: 1.5;
 }
