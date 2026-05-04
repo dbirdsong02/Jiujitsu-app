@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -128,7 +128,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, use
   return (
     <div className="app">
       <div className="screen home-screen">
-
         <div className="home-hero">
           <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
           <div className="hero-divider">
@@ -146,7 +145,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, use
             </div>
             <span className="nav-chevron">›</span>
           </button>
-
           <button className="nav-row" onClick={() => setScreen('viewLogs')}>
             <div className="nav-row-left">
               <div className="nav-icon-circle"><span className="nav-icon">≡</span></div>
@@ -154,7 +152,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, use
             </div>
             <span className="nav-chevron">›</span>
           </button>
-
           <button className="nav-row" onClick={() => setScreen('techniques')}>
             <div className="nav-row-left">
               <div className="nav-icon-circle"><span className="nav-icon">◈</span></div>
@@ -174,9 +171,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, use
               <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>
             )}
           </div>
-
           {logs.length === 0 && <div className="empty-state">No sessions logged yet.</div>}
-
           {logs.slice(0, 3).map(log => (
             <button key={log.id} className="session-row" onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}>
               <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
@@ -184,7 +179,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, use
                 <div className="session-row-title">{log.title.toUpperCase()}</div>
                 <div className="session-row-date">{log.date}</div>
               </div>
-              <div className="session-tag">{log.technique.toUpperCase()}</div>
+              {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
             </button>
           ))}
         </div>
@@ -193,7 +188,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, use
           <p className="signout-user">{user.displayName}</p>
           <button className="signout-btn" onClick={onSignOut}>SIGN OUT</button>
         </div>
-
       </div>
     </div>
   );
@@ -204,18 +198,81 @@ function NewLogScreen({ setScreen, addLog }) {
   const [date, setDate] = useState('');
   const [technique, setTechnique] = useState('');
   const [notes, setNotes] = useState('');
-  const [errors, setErrors] = useState({});
+  const [titleError, setTitleError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [notesMode, setNotesMode] = useState('text'); // 'text' | 'voice' | 'ai'
+  const [recording, setRecording] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const startVoice = (onResult) => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Voice not supported on this browser.'); return; }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = (e) => {
+      const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      onResult(transcript);
+    };
+    recognition.onerror = () => setRecording(false);
+    recognition.onend = () => setRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setRecording(true);
+  };
+
+  const stopVoice = () => {
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setRecording(false);
+  };
+
+  const handleVoiceTap = () => {
+    if (recording) { stopVoice(); return; }
+    startVoice((transcript) => {
+      setNotes(prev => prev ? prev + ' ' + transcript : transcript);
+    });
+  };
+
+  const handleAITap = async () => {
+    if (recording) { stopVoice(); return; }
+    let rawTranscript = '';
+    startVoice((transcript) => { rawTranscript = transcript; });
+    setTimeout(async () => {
+      stopVoice();
+      if (!rawTranscript) return;
+      setAiLoading(true);
+      try {
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.REACT_APP_ANTHROPIC_KEY,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: 'claude-opus-4-6',
+            max_tokens: 1024,
+            system: 'You are a BJJ training assistant. The user will give you a raw voice note from their training session. Summarize it into clean, organized training notes. Include: techniques worked on, key details or concepts learned, things to improve, and any notable moments from rolling. Be concise and structured. Use plain text, no markdown.',
+            messages: [{ role: 'user', content: rawTranscript }]
+          })
+        });
+        const data = await res.json();
+        const summary = data.content[0].text;
+        setNotes(summary);
+      } catch (e) {
+        console.error(e);
+        alert('AI summary failed. Check your API key.');
+      }
+      setAiLoading(false);
+    }, 15000);
+  };
 
   const handleSubmit = async () => {
-    const e = {};
-    if (!title.trim()) e.title = 'Required';
-    if (!date) e.date = 'Required';
-    if (!technique) e.technique = 'Required';
-    if (!notes.trim()) e.notes = 'Required';
-    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    if (!title.trim()) { setTitleError('Title is required'); return; }
     setSaving(true);
-    await addLog({ title: title.trim(), date, technique, notes: notes.trim() });
+    await addLog({ title: title.trim(), date, technique, notes });
     setSaving(false);
   };
 
@@ -229,23 +286,79 @@ function NewLogScreen({ setScreen, addLog }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label">TITLE {errors.title && <span className="error-msg">{errors.title}</span>}</label>
-          <input className={`form-input ${errors.title ? 'error' : ''}`} placeholder="e.g. Knee slice passing drill" value={title} onChange={e => { setTitle(e.target.value); setErrors({ ...errors, title: '' }); }} />
+          <label className="form-label">TITLE {titleError && <span className="error-msg">{titleError}</span>}</label>
+          <input
+            className={`form-input ${titleError ? 'error' : ''}`}
+            placeholder="e.g. 5/14/26 - Knee Slice Pass"
+            value={title}
+            onChange={e => { setTitle(e.target.value); setTitleError(''); }}
+          />
         </div>
+
         <div className="form-group">
-          <label className="form-label">DATE {errors.date && <span className="error-msg">{errors.date}</span>}</label>
-          <input className={`form-input ${errors.date ? 'error' : ''}`} type="date" value={date} onChange={e => { setDate(e.target.value); setErrors({ ...errors, date: '' }); }} />
+          <label className="form-label">DATE <span className="optional-label">OPTIONAL</span></label>
+          <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
         </div>
+
         <div className="form-group">
-          <label className="form-label">TECHNIQUE {errors.technique && <span className="error-msg">{errors.technique}</span>}</label>
-          <select className={`form-input ${errors.technique ? 'error' : ''}`} value={technique} onChange={e => { setTechnique(e.target.value); setErrors({ ...errors, technique: '' }); }}>
+          <label className="form-label">TECHNIQUE <span className="optional-label">OPTIONAL</span></label>
+          <select className="form-input" value={technique} onChange={e => setTechnique(e.target.value)}>
             <option value="">Select...</option>
             {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
+
         <div className="form-group">
-          <label className="form-label">NOTES {errors.notes && <span className="error-msg">{errors.notes}</span>}</label>
-          <textarea className={`form-input textarea ${errors.notes ? 'error' : ''}`} placeholder="Paste your Claude summary or write notes..." value={notes} onChange={e => { setNotes(e.target.value); setErrors({ ...errors, notes: '' }); }} />
+          <div className="notes-header">
+            <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
+            <div className="notes-toggle">
+              <button className={`toggle-btn ${notesMode === 'text' ? 'active' : ''}`} onClick={() => setNotesMode('text')}>TEXT</button>
+              <button className={`toggle-btn ${notesMode === 'voice' ? 'active' : ''}`} onClick={() => setNotesMode('voice')}>VOICE</button>
+              <button className={`toggle-btn ${notesMode === 'ai' ? 'active' : ''}`} onClick={() => setNotesMode('ai')}>AI</button>
+            </div>
+          </div>
+
+          {notesMode === 'text' && (
+            <textarea
+              className="form-input textarea"
+              placeholder="Log what you worked on today."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+          )}
+
+          {notesMode === 'voice' && (
+            <div className="voice-container">
+              <button className={`mic-btn ${recording ? 'recording' : ''}`} onClick={handleVoiceTap}>
+                {recording ? '⏹ STOP' : '🎙 TAP TO SPEAK'}
+              </button>
+              {notes && (
+                <textarea
+                  className="form-input textarea"
+                  style={{ marginTop: '12px' }}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
+              )}
+            </div>
+          )}
+
+          {notesMode === 'ai' && (
+            <div className="voice-container">
+              <p className="ai-desc">Speak your session recap. AI will organize it into structured notes.</p>
+              <button className={`mic-btn ${recording ? 'recording' : ''}`} onClick={handleAITap} disabled={aiLoading}>
+                {aiLoading ? 'SUMMARIZING...' : recording ? '⏹ STOP & SUMMARIZE' : '🎙 SPEAK YOUR SESSION'}
+              </button>
+              {notes && (
+                <textarea
+                  className="form-input textarea"
+                  style={{ marginTop: '12px' }}
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                />
+              )}
+            </div>
+          )}
         </div>
 
         <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
@@ -273,7 +386,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog }) {
               <div className="session-row-title">{log.title.toUpperCase()}</div>
               <div className="session-row-date">{log.date}</div>
             </div>
-            <div className="session-tag">{log.technique.toUpperCase()}</div>
+            {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
           </button>
         ))}
       </div>
@@ -288,11 +401,11 @@ function LogDetailScreen({ setScreen, log }) {
       <div className="screen inner-screen">
         <button className="btn-back" onClick={() => setScreen('viewLogs')}>← BACK</button>
         <div className="inner-header">
-          <p className="inner-label">{log.date} · {log.technique.toUpperCase()}</p>
+          <p className="inner-label">{log.date}{log.date && log.technique ? ' · ' : ''}{log.technique ? log.technique.toUpperCase() : ''}</p>
           <h2 className="inner-title">{log.title.toUpperCase()}</h2>
         </div>
-        <p className="inner-label" style={{ marginBottom: '12px' }}>NOTES</p>
-        <p className="log-notes">{log.notes}</p>
+        {log.notes && <><p className="inner-label" style={{ marginBottom: '12px' }}>NOTES</p>
+        <p className="log-notes">{log.notes}</p></>}
       </div>
     </div>
   );
