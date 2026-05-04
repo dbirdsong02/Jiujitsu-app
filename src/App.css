@@ -435,3 +435,107 @@ html, body {
   line-height: 1.9;
   white-space: pre-wrap;
 }
+
+/* ─── SIGN IN SCREEN ────────────────────────────── */
+
+.signin-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100vh;
+  padding: 0 24px 60px;
+}
+
+.signin-hero {
+  padding-top: 80px;
+}
+
+.signin-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.signin-desc {
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  color: #555;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.btn-google {
+  width: 100%;
+  padding: 18px;
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.btn-google:active {
+  background: #d0d0d0;
+}
+
+.google-icon {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  color: #4285F4;
+}
+
+.signin-fine {
+  font-family: 'Barlow', sans-serif;
+  font-size: 10px;
+  color: #333;
+  letter-spacing: 1px;
+  text-align: center;
+}
+
+/* ─── LOADING SCREEN ────────────────────────────── */
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+/* ─── SIGN OUT ROW ──────────────────────────────── */
+
+.signout-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 32px;
+  margin-top: 8px;
+}
+
+.signout-user {
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  color: #333;
+  letter-spacing: 1px;
+}
+
+.signout-btn {
+  background: none;
+  border: none;
+  font-family: 'Barlow', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #333;
+  cursor: pointer;
+}

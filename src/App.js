@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import { auth, db } from './firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const TECHNIQUES = [
   'Passing', 'Guard', 'Closed Guard', 'Judo Trips',
@@ -13,16 +16,70 @@ const TECHNIQUE_ICONS = {
 };
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [screen, setScreen] = useState('home');
   const [logs, setLogs] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
   const [selectedTechnique, setSelectedTechnique] = useState(null);
 
-  const addLog = (log) => { setLogs([log, ...logs]); setScreen('home'); };
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setAuthLoading(false);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (user) fetchLogs();
+  }, [user]);
+
+  const fetchLogs = async () => {
+    try {
+      const q = query(collection(db, `users/${auth.currentUser.uid}/logs`), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const addLog = async (log) => {
+    try {
+      const docRef = await addDoc(collection(db, `users/${auth.currentUser.uid}/logs`), {
+        ...log,
+        createdAt: serverTimestamp()
+      });
+      setLogs([{ id: docRef.id, ...log }, ...logs]);
+      setScreen('home');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut(auth);
+    setLogs([]);
+    setScreen('home');
+  };
+
   const getTechniqueCount = (t) => logs.filter(l => l.technique === t).length;
   const getLogsForTechnique = (t) => logs.filter(l => l.technique === t);
 
-  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} setSelectedTechnique={setSelectedTechnique} />;
+  if (authLoading) return <LoadingScreen />;
+  if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
+
+  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} setSelectedTechnique={setSelectedTechnique} user={user} onSignOut={handleSignOut} />;
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} />;
   if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} />;
   if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} />;
@@ -30,13 +87,50 @@ export default function App() {
   if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} />;
 }
 
-function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique }) {
+function LoadingScreen() {
+  return (
+    <div className="app">
+      <div className="loading-screen">
+        <h1 className="hero-title" style={{ fontSize: '60px' }}>BJJ</h1>
+        <p className="hero-sub" style={{ marginTop: '12px' }}>LOADING...</p>
+      </div>
+    </div>
+  );
+}
+
+function SignInScreen({ onSignIn }) {
+  return (
+    <div className="app">
+      <div className="screen signin-screen">
+        <div className="signin-hero">
+          <p className="inner-label">WELCOME TO</p>
+          <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
+          <div className="hero-divider">
+            <div className="hero-line" />
+            <span className="hero-sub">TRAINING JOURNAL</span>
+            <div className="hero-line" />
+          </div>
+        </div>
+        <div className="signin-bottom">
+          <p className="signin-desc">Track your training. Own your progress.</p>
+          <button className="btn-google" onClick={onSignIn}>
+            <span className="google-icon">G</span>
+            CONTINUE WITH GOOGLE
+          </button>
+          <p className="signin-fine">Your data is private and tied to your account.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, user, onSignOut }) {
   return (
     <div className="app">
       <div className="screen home-screen">
 
         <div className="home-hero">
-          <h1 className="hero-title">JIU<br/>JITSU</h1>
+          <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
           <div className="hero-divider">
             <div className="hero-line" />
             <span className="hero-sub">TRAINING JOURNAL</span>
@@ -95,6 +189,11 @@ function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique }) {
           ))}
         </div>
 
+        <div className="signout-row">
+          <p className="signout-user">{user.displayName}</p>
+          <button className="signout-btn" onClick={onSignOut}>SIGN OUT</button>
+        </div>
+
       </div>
     </div>
   );
@@ -106,15 +205,18 @@ function NewLogScreen({ setScreen, addLog }) {
   const [technique, setTechnique] = useState('');
   const [notes, setNotes] = useState('');
   const [errors, setErrors] = useState({});
+  const [saving, setSaving] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const e = {};
     if (!title.trim()) e.title = 'Required';
     if (!date) e.date = 'Required';
     if (!technique) e.technique = 'Required';
     if (!notes.trim()) e.notes = 'Required';
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    addLog({ id: Date.now(), title: title.trim(), date, technique, notes: notes.trim() });
+    setSaving(true);
+    await addLog({ title: title.trim(), date, technique, notes: notes.trim() });
+    setSaving(false);
   };
 
   return (
@@ -146,7 +248,9 @@ function NewLogScreen({ setScreen, addLog }) {
           <textarea className={`form-input textarea ${errors.notes ? 'error' : ''}`} placeholder="Paste your Claude summary or write notes..." value={notes} onChange={e => { setNotes(e.target.value); setErrors({ ...errors, notes: '' }); }} />
         </div>
 
-        <button className="btn-primary" onClick={handleSubmit}>SAVE SESSION</button>
+        <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
+          {saving ? 'SAVING...' : 'SAVE SESSION'}
+        </button>
       </div>
     </div>
   );
