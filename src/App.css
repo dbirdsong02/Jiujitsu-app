@@ -36,8 +36,7 @@ html, body {
   padding-bottom: 48px;
 }
 
-/* ─── HERO ─────────────────────────────────────── */
-
+/* HERO */
 .home-hero {
   padding: 56px 20px 20px;
 }
@@ -45,7 +44,7 @@ html, body {
 .hero-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;
-  font-size: clamp(110px, 28vw, 140px);
+  font-size: clamp(70px, 18vw, 90px);
   line-height: 0.82;
   letter-spacing: -4px;
   text-transform: uppercase;
@@ -76,8 +75,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ─── NAV LIST ──────────────────────────────────── */
-
+/* NAV LIST */
 .nav-list {
   padding: 24px 20px 16px;
   display: flex;
@@ -143,8 +141,7 @@ html, body {
   font-weight: 300;
 }
 
-/* ─── RECENT SESSIONS ───────────────────────────── */
-
+/* RECENT SESSIONS */
 .recent-section {
   padding: 8px 20px 40px;
 }
@@ -191,8 +188,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ─── SESSION ROWS ──────────────────────────────── */
-
+/* SESSION ROWS */
 .session-row {
   width: 100%;
   background: #111111;
@@ -267,8 +263,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ─── EMPTY STATE ───────────────────────────────── */
-
+/* EMPTY STATE */
 .empty-state {
   font-family: 'Barlow', sans-serif;
   font-size: 13px;
@@ -279,8 +274,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ─── INNER SCREENS ─────────────────────────────── */
-
+/* INNER SCREENS */
 .inner-screen {
   padding: 56px 20px 60px;
 }
@@ -312,8 +306,7 @@ html, body {
   margin-bottom: 10px;
 }
 
-/* ─── BACK BUTTON ───────────────────────────────── */
-
+/* BACK BUTTON */
 .btn-back {
   background: none;
   border: none;
@@ -329,8 +322,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ─── FORM ──────────────────────────────────────── */
-
+/* FORM */
 .form-group {
   margin-bottom: 22px;
 }
@@ -388,8 +380,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* ─── PRIMARY BUTTON ────────────────────────────── */
-
+/* PRIMARY BUTTON */
 .btn-primary {
   width: 100%;
   padding: 20px;
@@ -411,8 +402,7 @@ html, body {
   background: #cccccc;
 }
 
-/* ─── TECHNIQUE SCREEN ──────────────────────────── */
-
+/* TECHNIQUE SCREEN */
 .technique-info {
   display: flex;
   flex-direction: column;
@@ -426,8 +416,7 @@ html, body {
   letter-spacing: 1px;
 }
 
-/* ─── LOG DETAIL ────────────────────────────────── */
-
+/* LOG DETAIL */
 .log-notes {
   font-family: 'Barlow', sans-serif;
   font-size: 15px;
@@ -436,18 +425,23 @@ html, body {
   white-space: pre-wrap;
 }
 
-/* ─── SIGN IN SCREEN ────────────────────────────── */
-
+/* SIGN IN SCREEN */
 .signin-screen {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 100vh;
-  padding: 0 24px 60px;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0 24px 48px;
+  overflow: hidden;
 }
 
 .signin-hero {
-  padding-top: 80px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 20px;
 }
 
 .signin-bottom {
@@ -502,8 +496,7 @@ html, body {
   text-align: center;
 }
 
-/* ─── LOADING SCREEN ────────────────────────────── */
-
+/* LOADING SCREEN */
 .loading-screen {
   display: flex;
   flex-direction: column;
@@ -512,8 +505,7 @@ html, body {
   min-height: 100vh;
 }
 
-/* ─── SIGN OUT ROW ──────────────────────────────── */
-
+/* SIGN OUT ROW */
 .signout-row {
   display: flex;
   align-items: center;
