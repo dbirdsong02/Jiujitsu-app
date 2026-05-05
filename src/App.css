@@ -616,3 +616,54 @@ html, body {
   margin-bottom: 12px;
   line-height: 1.5;
 }
+
+/* NOTES ACTIONS */
+.notes-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.mic-btn-small {
+  flex: 1;
+  padding: 14px;
+  background: #111111;
+  border: 1px solid #1f1f1f;
+  border-radius: 10px;
+  color: #fff;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.mic-btn-small.recording {
+  background: #1a0000;
+  border-color: #6b0000;
+  color: #ff4444;
+}
+
+.ai-btn-small {
+  flex: 1;
+  padding: 14px;
+  background: #111111;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  color: #aaa;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.ai-btn-small:disabled {
+  opacity: 0.5;
+}
+
+.ai-btn-small:active {
+  background: #1a1a1a;
+}
