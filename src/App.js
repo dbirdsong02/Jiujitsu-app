@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
 
 const TECHNIQUES = [
   'Passing', 'Guard', 'Closed Guard', 'Judo Trips',
@@ -40,31 +40,31 @@ export default function App() {
       const q = query(collection(db, `users/${auth.currentUser.uid}/logs`), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const addLog = async (log) => {
     try {
       const docRef = await addDoc(collection(db, `users/${auth.currentUser.uid}/logs`), {
-        ...log,
-        createdAt: serverTimestamp()
+        ...log, createdAt: serverTimestamp()
       });
       setLogs([{ id: docRef.id, ...log }, ...logs]);
       setScreen('home');
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
+  };
+
+  const deleteLog = async (id) => {
+    try {
+      await deleteDoc(doc(db, `users/${auth.currentUser.uid}/logs`, id));
+      setLogs(prev => prev.filter(l => l.id !== id));
+    } catch (e) { console.error(e); }
   };
 
   const handleGoogleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch (e) { console.error(e); }
   };
 
   const handleSignOut = async () => {
@@ -78,13 +78,28 @@ export default function App() {
 
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
-
-  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} setSelectedTechnique={setSelectedTechnique} user={user} onSignOut={handleSignOut} />;
+  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} setSelectedTechnique={setSelectedTechnique} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} />;
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} />;
-  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} />;
+  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
   if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} />;
   if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} techniques={TECHNIQUES} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} />;
   if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} />;
+}
+
+function LogRow({ log, onClick, onDelete }) {
+  return (
+    <div className="log-row-wrapper">
+      <button className="session-row" onClick={onClick}>
+        <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
+        <div className="session-row-info">
+          <div className="session-row-title">{log.title.toUpperCase()}</div>
+          <div className="session-row-date">{log.date}</div>
+        </div>
+        {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
+      </button>
+      <button className="trash-btn" onClick={(e) => { e.stopPropagation(); onDelete(); }}>🗑</button>
+    </div>
+  );
 }
 
 function LoadingScreen() {
@@ -106,16 +121,13 @@ function SignInScreen({ onSignIn }) {
           <p className="inner-label">WELCOME TO</p>
           <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
           <div className="hero-divider">
-            <div className="hero-line" />
-            <span className="hero-sub">TRAINING JOURNAL</span>
-            <div className="hero-line" />
+            <div className="hero-line" /><span className="hero-sub">TRAINING JOURNAL</span><div className="hero-line" />
           </div>
         </div>
         <div className="signin-bottom">
           <p className="signin-desc">Track your training. Own your progress.</p>
           <button className="btn-google" onClick={onSignIn}>
-            <span className="google-icon">G</span>
-            CONTINUE WITH GOOGLE
+            <span className="google-icon">G</span>CONTINUE WITH GOOGLE
           </button>
           <p className="signin-fine">Your data is private and tied to your account.</p>
         </div>
@@ -124,66 +136,40 @@ function SignInScreen({ onSignIn }) {
   );
 }
 
-function HomeScreen({ setScreen, logs, setSelectedLog, setSelectedTechnique, user, onSignOut }) {
+function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog }) {
   return (
     <div className="app">
       <div className="screen home-screen">
         <div className="home-hero">
           <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
           <div className="hero-divider">
-            <div className="hero-line" />
-            <span className="hero-sub">TRAINING JOURNAL</span>
-            <div className="hero-line" />
+            <div className="hero-line" /><span className="hero-sub">TRAINING JOURNAL</span><div className="hero-line" />
           </div>
         </div>
-
         <div className="nav-list">
           <button className="nav-row" onClick={() => setScreen('newLog')}>
-            <div className="nav-row-left">
-              <div className="nav-icon-circle"><span className="nav-icon">+</span></div>
-              <span className="nav-row-label">NEW LOG</span>
-            </div>
+            <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">+</span></div><span className="nav-row-label">NEW LOG</span></div>
             <span className="nav-chevron">›</span>
           </button>
           <button className="nav-row" onClick={() => setScreen('viewLogs')}>
-            <div className="nav-row-left">
-              <div className="nav-icon-circle"><span className="nav-icon">≡</span></div>
-              <span className="nav-row-label">ALL SESSIONS</span>
-            </div>
+            <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">≡</span></div><span className="nav-row-label">ALL SESSIONS</span></div>
             <span className="nav-chevron">›</span>
           </button>
           <button className="nav-row" onClick={() => setScreen('techniques')}>
-            <div className="nav-row-left">
-              <div className="nav-icon-circle"><span className="nav-icon">◈</span></div>
-              <span className="nav-row-label">TECHNIQUES</span>
-            </div>
+            <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">◈</span></div><span className="nav-row-label">TECHNIQUES</span></div>
             <span className="nav-chevron">›</span>
           </button>
         </div>
-
         <div className="recent-section">
           <div className="recent-header">
-            <div className="recent-header-left">
-              <div className="recent-bar" />
-              <span className="recent-label">RECENT SESSIONS</span>
-            </div>
-            {logs.length > 0 && (
-              <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>
-            )}
+            <div className="recent-header-left"><div className="recent-bar" /><span className="recent-label">RECENT SESSIONS</span></div>
+            {logs.length > 0 && <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>}
           </div>
           {logs.length === 0 && <div className="empty-state">No sessions logged yet.</div>}
           {logs.slice(0, 3).map(log => (
-            <button key={log.id} className="session-row" onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}>
-              <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
-              <div className="session-row-info">
-                <div className="session-row-title">{log.title.toUpperCase()}</div>
-                <div className="session-row-date">{log.date}</div>
-              </div>
-              {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
-            </button>
+            <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
           ))}
         </div>
-
         <div className="signout-row">
           <p className="signout-user">{user.displayName}</p>
           <button className="signout-btn" onClick={onSignOut}>SIGN OUT</button>
@@ -200,26 +186,25 @@ function NewLogScreen({ setScreen, addLog }) {
   const [notes, setNotes] = useState('');
   const [titleError, setTitleError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [notesMode, setNotesMode] = useState('text'); // 'text' | 'voice' | 'ai'
   const [recording, setRecording] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const recognitionRef = useRef(null);
 
-  const startVoice = (onResult) => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) { alert('Voice not supported on this browser.'); return; }
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
-    recognition.onresult = (e) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join(' ');
-      onResult(transcript);
+  const startVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Voice not supported.'); return; }
+    const r = new SR();
+    r.continuous = true;
+    r.interimResults = false;
+    r.lang = 'en-US';
+    r.onresult = (e) => {
+      const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      setNotes(prev => prev ? prev + ' ' + t : t);
     };
-    recognition.onerror = () => setRecording(false);
-    recognition.onend = () => setRecording(false);
-    recognitionRef.current = recognition;
-    recognition.start();
+    r.onerror = () => setRecording(false);
+    r.onend = () => setRecording(false);
+    recognitionRef.current = r;
+    r.start();
     setRecording(true);
   };
 
@@ -228,45 +213,22 @@ function NewLogScreen({ setScreen, addLog }) {
     setRecording(false);
   };
 
-  const handleVoiceTap = () => {
-    if (recording) { stopVoice(); return; }
-    startVoice((transcript) => {
-      setNotes(prev => prev ? prev + ' ' + transcript : transcript);
-    });
-  };
-
-  const handleAITap = async () => {
-    if (recording) { stopVoice(); return; }
-    let rawTranscript = '';
-    startVoice((transcript) => { rawTranscript = transcript; });
-    setTimeout(async () => {
-      stopVoice();
-      if (!rawTranscript) return;
-      setAiLoading(true);
-      try {
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': process.env.REACT_APP_ANTHROPIC_KEY,
-            'anthropic-version': '2023-06-01'
-          },
-          body: JSON.stringify({
-            model: 'claude-opus-4-6',
-            max_tokens: 1024,
-            system: 'You are a BJJ training assistant. The user will give you a raw voice note from their training session. Summarize it into clean, organized training notes. Include: techniques worked on, key details or concepts learned, things to improve, and any notable moments from rolling. Be concise and structured. Use plain text, no markdown.',
-            messages: [{ role: 'user', content: rawTranscript }]
-          })
-        });
-        const data = await res.json();
-        const summary = data.content[0].text;
-        setNotes(summary);
-      } catch (e) {
-        console.error(e);
-        alert('AI summary failed. Check your API key.');
-      }
-      setAiLoading(false);
-    }, 15000);
+  const handleAISummarize = async () => {
+    if (!notes.trim()) { alert('Add notes first.'); return; }
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: notes })
+      });
+      const data = await res.json();
+      if (data.summary) setNotes(data.summary);
+      else alert('Failed: ' + (data.error || 'Unknown'));
+    } catch (e) {
+      alert('Failed: ' + e.message);
+    }
+    setAiLoading(false);
   };
 
   const handleSubmit = async () => {
@@ -284,22 +246,14 @@ function NewLogScreen({ setScreen, addLog }) {
           <p className="inner-label">NEW ENTRY</p>
           <h2 className="inner-title">LOG<br/>SESSION</h2>
         </div>
-
         <div className="form-group">
           <label className="form-label">TITLE {titleError && <span className="error-msg">{titleError}</span>}</label>
-          <input
-            className={`form-input ${titleError ? 'error' : ''}`}
-            placeholder="e.g. 5/14/26 - Knee Slice Pass"
-            value={title}
-            onChange={e => { setTitle(e.target.value); setTitleError(''); }}
-          />
+          <input className={`form-input ${titleError ? 'error' : ''}`} placeholder="e.g. 5/14/26 - Knee Slice Pass" value={title} onChange={e => { setTitle(e.target.value); setTitleError(''); }} />
         </div>
-
         <div className="form-group">
           <label className="form-label">DATE <span className="optional-label">OPTIONAL</span></label>
           <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
         </div>
-
         <div className="form-group">
           <label className="form-label">TECHNIQUE <span className="optional-label">OPTIONAL</span></label>
           <select className="form-input" value={technique} onChange={e => setTechnique(e.target.value)}>
@@ -307,60 +261,18 @@ function NewLogScreen({ setScreen, addLog }) {
             {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
-
         <div className="form-group">
-          <div className="notes-header">
-            <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
-            <div className="notes-toggle">
-              <button className={`toggle-btn ${notesMode === 'text' ? 'active' : ''}`} onClick={() => setNotesMode('text')}>TEXT</button>
-              <button className={`toggle-btn ${notesMode === 'voice' ? 'active' : ''}`} onClick={() => setNotesMode('voice')}>VOICE</button>
-              <button className={`toggle-btn ${notesMode === 'ai' ? 'active' : ''}`} onClick={() => setNotesMode('ai')}>AI</button>
-            </div>
+          <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
+          <textarea className="form-input textarea" placeholder="Type, speak, or paste your notes here." value={notes} onChange={e => setNotes(e.target.value)} />
+          <div className="notes-actions">
+            <button className={`mic-btn-small ${recording ? 'recording' : ''}`} onClick={() => recording ? stopVoice() : startVoice()}>
+              {recording ? '⏹ STOP' : '🎙 SPEAK'}
+            </button>
+            <button className="ai-btn-small" onClick={handleAISummarize} disabled={aiLoading}>
+              {aiLoading ? 'SUMMARIZING...' : '✦ AI SUMMARIZE'}
+            </button>
           </div>
-
-          {notesMode === 'text' && (
-            <textarea
-              className="form-input textarea"
-              placeholder="Log what you worked on today."
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
-          )}
-
-          {notesMode === 'voice' && (
-            <div className="voice-container">
-              <button className={`mic-btn ${recording ? 'recording' : ''}`} onClick={handleVoiceTap}>
-                {recording ? '⏹ STOP' : '🎙 TAP TO SPEAK'}
-              </button>
-              {notes && (
-                <textarea
-                  className="form-input textarea"
-                  style={{ marginTop: '12px' }}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                />
-              )}
-            </div>
-          )}
-
-          {notesMode === 'ai' && (
-            <div className="voice-container">
-              <p className="ai-desc">Speak your session recap. AI will organize it into structured notes.</p>
-              <button className={`mic-btn ${recording ? 'recording' : ''}`} onClick={handleAITap} disabled={aiLoading}>
-                {aiLoading ? 'SUMMARIZING...' : recording ? '⏹ STOP & SUMMARIZE' : '🎙 SPEAK YOUR SESSION'}
-              </button>
-              {notes && (
-                <textarea
-                  className="form-input textarea"
-                  style={{ marginTop: '12px' }}
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                />
-              )}
-            </div>
-          )}
         </div>
-
         <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
           {saving ? 'SAVING...' : 'SAVE SESSION'}
         </button>
@@ -369,7 +281,7 @@ function NewLogScreen({ setScreen, addLog }) {
   );
 }
 
-function ViewLogsScreen({ setScreen, logs, setSelectedLog }) {
+function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -380,14 +292,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog }) {
         </div>
         {logs.length === 0 && <p className="empty-state">No sessions logged yet.</p>}
         {logs.map(log => (
-          <button key={log.id} className="session-row" onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}>
-            <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
-            <div className="session-row-info">
-              <div className="session-row-title">{log.title.toUpperCase()}</div>
-              <div className="session-row-date">{log.date}</div>
-            </div>
-            {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
-          </button>
+          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
         ))}
       </div>
     </div>
@@ -404,8 +309,7 @@ function LogDetailScreen({ setScreen, log }) {
           <p className="inner-label">{log.date}{log.date && log.technique ? ' · ' : ''}{log.technique ? log.technique.toUpperCase() : ''}</p>
           <h2 className="inner-title">{log.title.toUpperCase()}</h2>
         </div>
-        {log.notes && <><p className="inner-label" style={{ marginBottom: '12px' }}>NOTES</p>
-        <p className="log-notes">{log.notes}</p></>}
+        {log.notes && <><p className="inner-label" style={{ marginBottom: '12px' }}>NOTES</p><p className="log-notes">{log.notes}</p></>}
       </div>
     </div>
   );
