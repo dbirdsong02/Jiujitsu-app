@@ -705,3 +705,32 @@ html, body {
   border-radius: 0 14px 14px 0;
   z-index: 0;
 }
+
+/* LOG ROW WITH TRASH */
+.log-row-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+
+.log-row-wrapper .session-row {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.trash-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #333;
+  cursor: pointer;
+  padding: 10px 6px;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.trash-btn:active {
+  color: #cc3333;
+}
