@@ -706,81 +706,105 @@ html, body {
   z-index: 0;
 }
 
-/* LOG ROW */
-.log-row-wrapper {
-  position: relative;
-  margin-bottom: 10px;
-}
-
-.log-row-wrapper .session-row {
-  margin-bottom: 0;
-  width: 100%;
-}
-
-/* DOTS BUTTON */
-.dots-btn {
-  background: none;
-  border: none;
-  color: #555;
-  font-size: 16px;
-  cursor: pointer;
-  padding: 4px 6px;
-  flex-shrink: 0;
-  -webkit-tap-highlight-color: transparent;
-  line-height: 1;
-  letter-spacing: 2px;
-}
-
-.dots-btn:active {
-  color: #fff;
-}
-
-/* DOTS MENU POPUP */
-.dots-overlay {
+/* ACTION SHEET (long press) */
+.sheet-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 99;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-.dots-menu {
-  position: absolute;
-  right: 8px;
-  top: calc(100% - 8px);
-  background: #1e1e1e;
-  border: 1px solid #2a2a2a;
-  border-radius: 10px;
+.action-sheet {
+  width: 100%;
+  max-width: 430px;
+  background: #1a1a1a;
+  border-radius: 16px 16px 0 0;
   overflow: hidden;
-  z-index: 100;
-  min-width: 130px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  padding-bottom: 8px;
 }
 
-.dots-menu-item {
+.sheet-title {
+  font-family: 'Barlow', sans-serif;
+  font-size: 12px;
+  color: #555;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid #222;
+  text-transform: uppercase;
+}
+
+.sheet-btn {
   width: 100%;
   background: none;
   border: none;
-  color: #ccc;
+  border-bottom: 1px solid #222;
+  color: #fff;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 2px;
-  padding: 14px 18px;
-  text-align: left;
+  padding: 18px 20px;
+  text-align: center;
   cursor: pointer;
   display: block;
 }
 
-.dots-menu-item:active {
-  background: #2a2a2a;
+.sheet-btn:active {
+  background: #222;
 }
 
-.dots-menu-item.danger {
+.sheet-btn.danger {
   color: #cc3333;
 }
 
-.dots-menu-item + .dots-menu-item {
-  border-top: 1px solid #2a2a2a;
+.sheet-btn.cancel {
+  color: #555;
+  margin-top: 8px;
+  border: none;
+}
+
+/* SAVE INLINE BUTTON */
+.save-inline-btn {
+  background: none;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #aaa;
+  font-family: 'Barlow', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.save-inline-btn:active {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* DETAIL TITLE INPUT */
+.detail-title-input {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  background: none !important;
+  border: none !important;
+  border-bottom: 1px solid #1f1f1f !important;
+  border-radius: 0 !important;
+  padding: 8px 0 !important;
+  color: #fff !important;
+}
+
+.detail-title-input:focus {
+  border-bottom-color: #333 !important;
+  outline: none !important;
 }
