@@ -103,12 +103,12 @@ export default function App() {
 
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
-  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} updateLog={updateLog} />;
+  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} />;
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} />;
-  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} updateLog={updateLog} />;
-  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} setLog={setSelectedLog} updateLog={updateLog} />;
+  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
+  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} />;
   if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} techniques={TECHNIQUES} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} />;
-  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} updateLog={updateLog} />;
+  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
 }
 
 function LoadingScreen() {
@@ -145,7 +145,7 @@ function SignInScreen({ onSignIn }) {
   );
 }
 
-function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog, updateLog }) {
+function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog }) {
   return (
     <div className="app">
       <div className="screen home-screen">
@@ -179,7 +179,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
             <LogRow key={log.id} log={log}
               onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
               onDelete={() => deleteLog(log.id)}
-              onEdit={() => { setSelectedLog(log); setScreen('logDetail'); }}
             />
           ))}
         </div>
@@ -242,7 +241,7 @@ function NotesInput({ notes, setNotes }) {
     <>
       <textarea
         className="form-input textarea"
-        placeholder="Type, speak, or paste your notes. Tap Speak multiple times to keep adding."
+        placeholder="Type, speak, or paste. Tap Speak multiple times to keep adding."
         value={notes}
         onChange={e => setNotes(e.target.value)}
         style={{ minHeight: '200px' }}
@@ -309,13 +308,15 @@ function NewLogScreen({ setScreen, addLog }) {
   );
 }
 
-// Log detail is now fully editable — like a notes app
-function LogDetailScreen({ setScreen, log, setLog, updateLog }) {
+function LogDetailScreen({ setScreen, log, updateLog }) {
   const [title, setTitle] = useState(log?.title || '');
   const [date, setDate] = useState(log?.date || '');
   const [technique, setTechnique] = useState(log?.technique || '');
   const [notes, setNotes] = useState(log?.notes || '');
   const [saved, setSaved] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const recognitionRef = useRef(null);
 
   if (!log) { setScreen('home'); return null; }
 
@@ -325,40 +326,84 @@ function LogDetailScreen({ setScreen, log, setLog, updateLog }) {
     setTimeout(() => setSaved(false), 1500);
   };
 
+  const startVoice = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Voice not supported.'); return; }
+    const r = new SR();
+    r.continuous = true; r.interimResults = false; r.lang = 'en-US';
+    r.onresult = (e) => {
+      const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
+      setNotes(prev => prev ? prev + ' ' + t : t);
+    };
+    r.onerror = () => setRecording(false);
+    r.onend = () => setRecording(false);
+    recognitionRef.current = r;
+    r.start();
+    setRecording(true);
+  };
+
+  const stopVoice = () => {
+    if (recognitionRef.current) recognitionRef.current.stop();
+    setRecording(false);
+  };
+
+  const handleAISummarize = async () => {
+    if (!notes.trim()) { alert('Add notes first.'); return; }
+    setAiLoading(true);
+    try {
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript: notes })
+      });
+      const data = await res.json();
+      if (data.summary) setNotes(data.summary);
+      else alert('Failed: ' + (data.error || 'Unknown'));
+    } catch (e) { alert('Failed: ' + e.message); }
+    setAiLoading(false);
+  };
+
   return (
     <div className="app">
       <div className="screen inner-screen">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+        <div className="detail-topbar">
           <button className="btn-back" style={{ margin: 0 }} onClick={() => setScreen('viewLogs')}>← BACK</button>
           <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
         </div>
-        <div className="inner-header">
-          <p className="inner-label">{date || 'NO DATE'}{date && technique ? ' · ' : ''}{technique ? technique.toUpperCase() : ''}</p>
+
+        <div className="detail-meta">
+          <input className="detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
+          <div className="detail-meta-inline">
+            <input className="detail-meta-chip" type="date" value={date} onChange={e => setDate(e.target.value)} />
+            <select className="detail-meta-chip" value={technique} onChange={e => setTechnique(e.target.value)}>
+              <option value="">No technique</option>
+              {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
         </div>
-        <div className="form-group">
-          <input className="form-input detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">DATE <span className="optional-label">OPTIONAL</span></label>
-          <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label className="form-label">TECHNIQUE <span className="optional-label">OPTIONAL</span></label>
-          <select className="form-input" value={technique} onChange={e => setTechnique(e.target.value)}>
-            <option value="">Select...</option>
-            {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label className="form-label">NOTES</label>
-          <NotesInput notes={notes} setNotes={setNotes} />
+
+        <div className="detail-notes-section">
+          <textarea
+            className="detail-notes-textarea"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Notes..."
+          />
+          <div className="notes-actions">
+            <button className={`mic-btn-small ${recording ? 'recording' : ''}`} onClick={() => recording ? stopVoice() : startVoice()}>
+              {recording ? '⏹ STOP' : '🎙 SPEAK'}
+            </button>
+            <button className="ai-btn-small" onClick={handleAISummarize} disabled={aiLoading}>
+              {aiLoading ? 'SUMMARIZING...' : '✦ AI SUMMARIZE'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, updateLog }) {
+function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -372,7 +417,6 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, updateLog 
           <LogRow key={log.id} log={log}
             onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
             onDelete={() => deleteLog(log.id)}
-            onEdit={() => { setSelectedLog(log); setScreen('logDetail'); }}
           />
         ))}
       </div>
@@ -406,7 +450,7 @@ function TechniquesScreen({ setScreen, techniques, getTechniqueCount, setSelecte
   );
 }
 
-function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, deleteLog, updateLog }) {
+function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, deleteLog }) {
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -421,7 +465,6 @@ function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, del
           <LogRow key={log.id} log={log}
             onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
             onDelete={() => deleteLog(log.id)}
-            onEdit={() => { setSelectedLog(log); setScreen('logDetail'); }}
           />
         ))}
       </div>
