@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './App.css';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 const TECHNIQUES = [
   'Passing', 'Guard', 'Closed Guard', 'Judo Trips',
@@ -14,6 +14,24 @@ const TECHNIQUE_ICONS = {
   'Mount': '▲', 'Back Control': '◀', 'Submissions': '✕',
   'Escapes': '↗', 'Leg Locks': '⌇', 'Other': '◈'
 };
+
+const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
+
+function LogRow({ log, onClick, onDelete }) {
+  return (
+    <div className="log-row-wrapper">
+      <button className="session-row" onClick={onClick}>
+        <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
+        <div className="session-row-info">
+          <div className="session-row-title">{log.title.toUpperCase()}</div>
+          <div className="session-row-date">{log.date}</div>
+        </div>
+        {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
+      </button>
+      <button className="trash-btn" onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
+    </div>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -37,7 +55,7 @@ export default function App() {
 
   const fetchLogs = async () => {
     try {
-      const q = query(collection(db, `users/N49NTTNuEVOxzo79QyrYvGjt6Vk1/logs`), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, `users/${HARDCODED_UID}/logs`), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
@@ -45,7 +63,7 @@ export default function App() {
 
   const addLog = async (log) => {
     try {
-      const docRef = await addDoc(collection(db, `users/N49NTTNuEVOxzo79QyrYvGjt6Vk1/logs`), {
+      const docRef = await addDoc(collection(db, `users/${HARDCODED_UID}/logs`), {
         ...log, createdAt: serverTimestamp()
       });
       setLogs([{ id: docRef.id, ...log }, ...logs]);
@@ -53,9 +71,16 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
+  const updateLog = async (id, updates) => {
+    try {
+      await updateDoc(doc(db, `users/${HARDCODED_UID}/logs`, id), updates);
+      setLogs(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    } catch (e) { console.error(e); }
+  };
+
   const deleteLog = async (id) => {
     try {
-      await deleteDoc(doc(db, `users/N49NTTNuEVOxzo79QyrYvGjt6Vk1/logs`, id));
+      await deleteDoc(doc(db, `users/${HARDCODED_UID}/logs`, id));
       setLogs(prev => prev.filter(l => l.id !== id));
     } catch (e) { console.error(e); }
   };
@@ -78,28 +103,12 @@ export default function App() {
 
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
-  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} setSelectedTechnique={setSelectedTechnique} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} />;
+  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} updateLog={updateLog} />;
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} />;
-  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
-  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} />;
+  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} updateLog={updateLog} />;
+  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} setLog={setSelectedLog} updateLog={updateLog} />;
   if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} techniques={TECHNIQUES} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} />;
-  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} />;
-}
-
-function LogRow({ log, onClick, onDelete }) {
-  return (
-    <div className="log-row-wrapper">
-      <button className="session-row" onClick={onClick}>
-        <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
-        <div className="session-row-info">
-          <div className="session-row-title">{log.title.toUpperCase()}</div>
-          <div className="session-row-date">{log.date}</div>
-        </div>
-        {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
-      </button>
-      <button className="trash-btn" onClick={(e) => { e.stopPropagation(); onDelete(); }}>🗑</button>
-    </div>
-  );
+  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} updateLog={updateLog} />;
 }
 
 function LoadingScreen() {
@@ -136,7 +145,7 @@ function SignInScreen({ onSignIn }) {
   );
 }
 
-function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog }) {
+function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog, updateLog }) {
   return (
     <div className="app">
       <div className="screen home-screen">
@@ -167,7 +176,11 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
           </div>
           {logs.length === 0 && <div className="empty-state">No sessions logged yet.</div>}
           {logs.slice(0, 3).map(log => (
-            <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
+            <LogRow key={log.id} log={log}
+              onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
+              onDelete={() => deleteLog(log.id)}
+              onEdit={() => { setSelectedLog(log); setScreen('logDetail'); }}
+            />
           ))}
         </div>
         <div className="signout-row">
@@ -179,13 +192,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
   );
 }
 
-function NewLogScreen({ setScreen, addLog }) {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [technique, setTechnique] = useState('');
-  const [notes, setNotes] = useState('');
-  const [titleError, setTitleError] = useState('');
-  const [saving, setSaving] = useState(false);
+function NotesInput({ notes, setNotes }) {
   const [recording, setRecording] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const recognitionRef = useRef(null);
@@ -231,6 +238,35 @@ function NewLogScreen({ setScreen, addLog }) {
     setAiLoading(false);
   };
 
+  return (
+    <>
+      <textarea
+        className="form-input textarea"
+        placeholder="Type, speak, or paste your notes. Tap Speak multiple times to keep adding."
+        value={notes}
+        onChange={e => setNotes(e.target.value)}
+        style={{ minHeight: '200px' }}
+      />
+      <div className="notes-actions">
+        <button className={`mic-btn-small ${recording ? 'recording' : ''}`} onClick={() => recording ? stopVoice() : startVoice()}>
+          {recording ? '⏹ STOP' : '🎙 SPEAK'}
+        </button>
+        <button className="ai-btn-small" onClick={handleAISummarize} disabled={aiLoading}>
+          {aiLoading ? 'SUMMARIZING...' : '✦ AI SUMMARIZE'}
+        </button>
+      </div>
+    </>
+  );
+}
+
+function NewLogScreen({ setScreen, addLog }) {
+  const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
+  const [technique, setTechnique] = useState('');
+  const [notes, setNotes] = useState('');
+  const [titleError, setTitleError] = useState('');
+  const [saving, setSaving] = useState(false);
+
   const handleSubmit = async () => {
     if (!title.trim()) { setTitleError('Title is required'); return; }
     setSaving(true);
@@ -263,15 +299,7 @@ function NewLogScreen({ setScreen, addLog }) {
         </div>
         <div className="form-group">
           <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
-          <textarea className="form-input textarea" placeholder="Type, speak, or paste your notes here." value={notes} onChange={e => setNotes(e.target.value)} />
-          <div className="notes-actions">
-            <button className={`mic-btn-small ${recording ? 'recording' : ''}`} onClick={() => recording ? stopVoice() : startVoice()}>
-              {recording ? '⏹ STOP' : '🎙 SPEAK'}
-            </button>
-            <button className="ai-btn-small" onClick={handleAISummarize} disabled={aiLoading}>
-              {aiLoading ? 'SUMMARIZING...' : '✦ AI SUMMARIZE'}
-            </button>
-          </div>
+          <NotesInput notes={notes} setNotes={setNotes} />
         </div>
         <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
           {saving ? 'SAVING...' : 'SAVE SESSION'}
@@ -281,7 +309,56 @@ function NewLogScreen({ setScreen, addLog }) {
   );
 }
 
-function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
+// Log detail is now fully editable — like a notes app
+function LogDetailScreen({ setScreen, log, setLog, updateLog }) {
+  const [title, setTitle] = useState(log?.title || '');
+  const [date, setDate] = useState(log?.date || '');
+  const [technique, setTechnique] = useState(log?.technique || '');
+  const [notes, setNotes] = useState(log?.notes || '');
+  const [saved, setSaved] = useState(false);
+
+  if (!log) { setScreen('home'); return null; }
+
+  const handleSave = async () => {
+    await updateLog(log.id, { title: title.trim(), date, technique, notes });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  return (
+    <div className="app">
+      <div className="screen inner-screen">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+          <button className="btn-back" style={{ margin: 0 }} onClick={() => setScreen('viewLogs')}>← BACK</button>
+          <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
+        </div>
+        <div className="inner-header">
+          <p className="inner-label">{date || 'NO DATE'}{date && technique ? ' · ' : ''}{technique ? technique.toUpperCase() : ''}</p>
+        </div>
+        <div className="form-group">
+          <input className="form-input detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
+        </div>
+        <div className="form-group">
+          <label className="form-label">DATE <span className="optional-label">OPTIONAL</span></label>
+          <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">TECHNIQUE <span className="optional-label">OPTIONAL</span></label>
+          <select className="form-input" value={technique} onChange={e => setTechnique(e.target.value)}>
+            <option value="">Select...</option>
+            {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">NOTES</label>
+          <NotesInput notes={notes} setNotes={setNotes} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, updateLog }) {
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -292,24 +369,12 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
         </div>
         {logs.length === 0 && <p className="empty-state">No sessions logged yet.</p>}
         {logs.map(log => (
-          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
+          <LogRow key={log.id} log={log}
+            onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
+            onDelete={() => deleteLog(log.id)}
+            onEdit={() => { setSelectedLog(log); setScreen('logDetail'); }}
+          />
         ))}
-      </div>
-    </div>
-  );
-}
-
-function LogDetailScreen({ setScreen, log }) {
-  if (!log) { setScreen('home'); return null; }
-  return (
-    <div className="app">
-      <div className="screen inner-screen">
-        <button className="btn-back" onClick={() => setScreen('viewLogs')}>← BACK</button>
-        <div className="inner-header">
-          <p className="inner-label">{log.date}{log.date && log.technique ? ' · ' : ''}{log.technique ? log.technique.toUpperCase() : ''}</p>
-          <h2 className="inner-title">{log.title.toUpperCase()}</h2>
-        </div>
-        {log.notes && <><p className="inner-label" style={{ marginBottom: '12px' }}>NOTES</p><p className="log-notes">{log.notes}</p></>}
       </div>
     </div>
   );
@@ -341,7 +406,7 @@ function TechniquesScreen({ setScreen, techniques, getTechniqueCount, setSelecte
   );
 }
 
-function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog }) {
+function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, deleteLog, updateLog }) {
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -353,13 +418,11 @@ function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog }) {
         </div>
         {logs.length === 0 && <p className="empty-state">No sessions for this technique yet.</p>}
         {logs.map(log => (
-          <button key={log.id} className="session-row" onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}>
-            <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
-            <div className="session-row-info">
-              <div className="session-row-title">{log.title.toUpperCase()}</div>
-              <div className="session-row-date">{log.date}</div>
-            </div>
-          </button>
+          <LogRow key={log.id} log={log}
+            onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
+            onDelete={() => deleteLog(log.id)}
+            onEdit={() => { setSelectedLog(log); setScreen('logDetail'); }}
+          />
         ))}
       </div>
     </div>
