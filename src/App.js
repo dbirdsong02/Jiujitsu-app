@@ -37,7 +37,7 @@ export default function App() {
 
   const fetchLogs = async () => {
     try {
-      const q = query(collection(db, `users/${auth.currentUser.uid}/logs`), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, `users/N49NTTNuEVOxzo79QyrYvGjt6Vk1/logs`), orderBy('createdAt', 'desc'));
       const snap = await getDocs(q);
       setLogs(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) { console.error(e); }
@@ -45,7 +45,7 @@ export default function App() {
 
   const addLog = async (log) => {
     try {
-      const docRef = await addDoc(collection(db, `users/${auth.currentUser.uid}/logs`), {
+      const docRef = await addDoc(collection(db, `users/N49NTTNuEVOxzo79QyrYvGjt6Vk1/logs`), {
         ...log, createdAt: serverTimestamp()
       });
       setLogs([{ id: docRef.id, ...log }, ...logs]);
@@ -55,7 +55,7 @@ export default function App() {
 
   const deleteLog = async (id) => {
     try {
-      await deleteDoc(doc(db, `users/${auth.currentUser.uid}/logs`, id));
+      await deleteDoc(doc(db, `users/N49NTTNuEVOxzo79QyrYvGjt6Vk1/logs`, id));
       setLogs(prev => prev.filter(l => l.id !== id));
     } catch (e) { console.error(e); }
   };
