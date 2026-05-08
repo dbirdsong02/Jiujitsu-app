@@ -281,12 +281,12 @@ html, body {
 .technique-info { display: flex; flex-direction: column; gap: 3px; }
 .technique-count { font-family: 'Barlow', sans-serif; font-size: 11px; color: #444; letter-spacing: 1px; }
 
-/* LOG DETAIL — editable notes-style screen */
+/* LOG DETAIL */
 .detail-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .save-inline-btn {
@@ -304,7 +304,7 @@ html, body {
 }
 .save-inline-btn:active { background: #1a1a1a; color: #fff; }
 
-.detail-meta { margin-bottom: 20px; }
+.detail-meta { margin-bottom: 12px; }
 
 .detail-title-input {
   width: 100%;
@@ -312,40 +312,56 @@ html, body {
   border: none;
   border-bottom: 1px solid #1f1f1f;
   border-radius: 0;
-  padding: 8px 0 12px;
+  padding: 4px 0 10px;
   color: #fff;
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 1px;
   outline: none;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  user-select: text;
 }
 .detail-title-input:focus { border-bottom-color: #333; }
 
-.detail-meta-row {
+.detail-meta-inline {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
-.detail-meta-input {
+.detail-meta-chip {
   flex: 1;
-  padding: 10px 12px;
-  background: #111111;
+  padding: 6px 10px;
+  background: #111;
   border: 1px solid #1f1f1f;
-  border-radius: 10px;
-  color: #777;
+  border-radius: 8px;
+  color: #555;
   font-family: 'Barlow', sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   appearance: none;
   -webkit-appearance: none;
   outline: none;
 }
-.detail-meta-input:focus { border-color: #333; color: #fff; }
-.detail-meta-input option { background: #111111; }
+.detail-meta-chip:focus { border-color: #333; color: #fff; }
+.detail-meta-chip option { background: #111; }
 
-.detail-notes-section { margin-top: 8px; }
-.detail-notes-section .form-input.textarea { min-height: 300px; }
+.detail-notes-section { flex: 1; display: flex; flex-direction: column; }
 
-/* SIGN IN CSS extra */
-.signin-screen .hero-title { font-size: clamp(70px, 18vw, 90px); }
+.detail-notes-textarea {
+  width: 100%;
+  min-height: 65vh;
+  padding: 16px;
+  background: #111111;
+  border: 1px solid #1f1f1f;
+  border-radius: 12px;
+  color: #ccc;
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  resize: none;
+  outline: none;
+  margin-bottom: 10px;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.detail-notes-textarea:focus { border-color: #333; }
