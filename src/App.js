@@ -5,13 +5,13 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 const TECHNIQUE_TREE = {
-  'Passing': ['Knee Slice', 'Smash Pass', 'Torreando', 'Over-Under', 'Leg Drag', 'Other Passing'],
-  'Guard': ['Butterfly', 'De La Riva', 'X Guard', 'Spider', 'K Guard', 'Other Guard'],
-  'Closed Guard': ['Closed Guard Sweeps', 'Closed Guard Submissions', 'Closed Guard Breaks'],
-  'Takedowns': ['Judo Trips', 'Double Leg', 'Single Leg', 'O Soto Gari', 'Arm Drag', 'Other Takedowns'],
+  'Passing': ['Knee Slice', 'Smash Pass', 'Torreando', 'Over-Under', 'Leg Drag', 'General Passing'],
+  'Guard': ['Butterfly', 'De La Riva', 'X Guard', 'Spider', 'K Guard', 'General Guard'],
+  'Closed Guard': ['Sweeps', 'Submissions', 'Guard Breaks', 'General Closed Guard'],
+  'Takedowns': ['Judo Trips', 'Double Leg', 'Single Leg', 'O Soto Gari', 'Arm Drag', 'General Takedowns'],
   'Mount': ['High Mount', 'Low Mount', 'S Mount', 'Mount Attacks'],
   'Back Control': ['Rear Naked Choke', 'Back Takes', 'Back Retention'],
-  'Submissions': ['Chokes', 'Arm Locks', 'Kimura', 'Guillotine', 'D\'Arce', 'Other Submissions'],
+  'Submissions': ['Chokes', 'Arm Locks', 'Kimura', 'Guillotine', "D'Arce", 'General Submissions'],
   'Leg Locks': ['Heel Hook', 'Knee Bar', 'Ankle Lock', 'Toe Hold', 'Ashi Garami'],
   'Escapes': ['Guard Recovery', 'Mount Escape', 'Back Escape', 'Side Control Escape'],
   'Other': ['Drills', 'Concepts', 'Improvement Notes', 'General'],
@@ -26,7 +26,6 @@ const TECHNIQUE_ICONS = {
 };
 
 const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
-
 const clean = (str) => (str || '').replace(/\?{2,}/g, '--');
 
 function LogRow({ log, onClick, onDelete }) {
@@ -247,14 +246,17 @@ function NewLogScreen({ setScreen, addLog }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [technique, setTechnique] = useState('');
+  const [subtechnique, setSubtechnique] = useState('');
   const [notes, setNotes] = useState('');
   const [titleError, setTitleError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const subsections = technique ? TECHNIQUE_TREE[technique] || [] : [];
+
   const handleSubmit = async () => {
     if (!title.trim()) { setTitleError('Title is required'); return; }
     setSaving(true);
-    await addLog({ title: title.trim(), date, technique, notes });
+    await addLog({ title: title.trim(), date, technique, subtechnique, notes });
     setSaving(false);
   };
 
@@ -276,11 +278,20 @@ function NewLogScreen({ setScreen, addLog }) {
         </div>
         <div className="form-group">
           <label className="form-label">TECHNIQUE <span className="optional-label">OPTIONAL</span></label>
-          <select className="form-input" value={technique} onChange={e => setTechnique(e.target.value)}>
-            <option value="">Select...</option>
+          <select className="form-input" value={technique} onChange={e => { setTechnique(e.target.value); setSubtechnique(''); }}>
+            <option value="">Select category...</option>
             {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
+        {technique && subsections.length > 0 && (
+          <div className="form-group">
+            <label className="form-label">SUBCATEGORY <span className="optional-label">OPTIONAL</span></label>
+            <select className="form-input" value={subtechnique} onChange={e => setSubtechnique(e.target.value)}>
+              <option value="">Select subcategory...</option>
+              {subsections.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+        )}
         <div className="form-group">
           <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
           <NotesInput notes={notes} setNotes={setNotes} />
@@ -295,6 +306,7 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
   const [title, setTitle] = useState(log?.title || '');
   const [date, setDate] = useState(log?.date || '');
   const [technique, setTechnique] = useState(log?.technique || '');
+  const [subtechnique, setSubtechnique] = useState(log?.subtechnique || '');
   const [notes, setNotes] = useState(log?.notes || '');
   const [saved, setSaved] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -303,8 +315,10 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
 
   if (!log) { setScreen('home'); return null; }
 
+  const subsections = technique ? TECHNIQUE_TREE[technique] || [] : [];
+
   const handleSave = async () => {
-    await updateLog(log.id, { title: title.trim(), date, technique, notes });
+    await updateLog(log.id, { title: title.trim(), date, technique, subtechnique, notes });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -354,11 +368,19 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
           <input className="detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
           <div className="detail-meta-inline">
             <input className="detail-meta-chip" type="date" value={date} onChange={e => setDate(e.target.value)} />
-            <select className="detail-meta-chip" value={technique} onChange={e => setTechnique(e.target.value)}>
+            <select className="detail-meta-chip" value={technique} onChange={e => { setTechnique(e.target.value); setSubtechnique(''); }}>
               <option value="">No technique</option>
               {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
+          {technique && subsections.length > 0 && (
+            <div style={{ marginTop: '8px' }}>
+              <select className="detail-meta-chip" style={{ width: '100%' }} value={subtechnique} onChange={e => setSubtechnique(e.target.value)}>
+                <option value="">No subcategory</option>
+                {subsections.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         <div className="detail-notes-section">
           <textarea className="detail-notes-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..." />
@@ -380,8 +402,6 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
 
-  const categories = ['ALL', ...TECHNIQUES];
-
   const filtered = logs
     .filter(l => filter === 'ALL' || (l.technique || 'Other') === filter)
     .filter(l => !search || clean(l.title).toLowerCase().includes(search.toLowerCase()) || (l.notes || '').toLowerCase().includes(search.toLowerCase()))
@@ -395,12 +415,15 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
           <p className="inner-label">HISTORY</p>
           <h2 className="inner-title">ALL<br/>SESSIONS</h2>
         </div>
-        <input className="search-bar" placeholder="Search sessions..." value={search} onChange={e => setSearch(e.target.value)} />
-        <div className="filter-bar">
-          {categories.map(cat => (
-            <button key={cat} className={`filter-chip ${filter === cat ? 'active' : ''}`} onClick={() => setFilter(cat)}>{cat}</button>
-          ))}
+
+        <div className="filter-row">
+          <input className="search-bar-inline" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} />
+          <select className="filter-dropdown" value={filter} onChange={e => setFilter(e.target.value)}>
+            <option value="ALL">All</option>
+            {TECHNIQUES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
         </div>
+
         {filtered.length === 0 && <p className="empty-state">No sessions found.</p>}
         {filtered.map(log => (
           <LogRow key={log.id} log={log}
@@ -417,9 +440,7 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique }
   const [search, setSearch] = useState('');
   const [openSections, setOpenSections] = useState({});
 
-  const toggleSection = (section) => {
-    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
+  const toggleSection = (section) => setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
 
   const filteredTree = Object.entries(TECHNIQUE_TREE).filter(([section, subs]) => {
     if (!search) return true;
