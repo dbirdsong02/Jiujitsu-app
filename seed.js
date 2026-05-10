@@ -13,7 +13,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const USER_ID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
+const USER_ID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
 
 const entries = [
   {

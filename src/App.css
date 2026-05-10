@@ -365,3 +365,30 @@ html, body {
   -webkit-user-select: text;
 }
 .detail-notes-textarea:focus { border-color: #333; }
+/* FILTER BAR */
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-chip {
+  background: #111;
+  border: 1px solid #1f1f1f;
+  border-radius: 20px;
+  color: #555;
+  font-family: 'Barlow', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  padding: 8px 14px;
+  white-space: nowrap;
+  cursor: pointer;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.filter-chip.active { background: #fff; color: #000; border-color: #fff; }
