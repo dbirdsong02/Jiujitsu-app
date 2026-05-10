@@ -4,31 +4,43 @@ import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 
-const TECHNIQUES = [
-  'Passing', 'Guard', 'Closed Guard', 'Judo Trips',
-  'Mount', 'Back Control', 'Submissions', 'Escapes', 'Leg Locks', 'Other'
-];
+const TECHNIQUE_TREE = {
+  'Passing': ['Knee Slice', 'Smash Pass', 'Torreando', 'Over-Under', 'Leg Drag', 'Other Passing'],
+  'Guard': ['Butterfly', 'De La Riva', 'X Guard', 'Spider', 'K Guard', 'Other Guard'],
+  'Closed Guard': ['Closed Guard Sweeps', 'Closed Guard Submissions', 'Closed Guard Breaks'],
+  'Takedowns': ['Judo Trips', 'Double Leg', 'Single Leg', 'O Soto Gari', 'Arm Drag', 'Other Takedowns'],
+  'Mount': ['High Mount', 'Low Mount', 'S Mount', 'Mount Attacks'],
+  'Back Control': ['Rear Naked Choke', 'Back Takes', 'Back Retention'],
+  'Submissions': ['Chokes', 'Arm Locks', 'Kimura', 'Guillotine', 'D\'Arce', 'Other Submissions'],
+  'Leg Locks': ['Heel Hook', 'Knee Bar', 'Ankle Lock', 'Toe Hold', 'Ashi Garami'],
+  'Escapes': ['Guard Recovery', 'Mount Escape', 'Back Escape', 'Side Control Escape'],
+  'Other': ['Drills', 'Concepts', 'Improvement Notes', 'General'],
+};
+
+const TECHNIQUES = Object.keys(TECHNIQUE_TREE);
 
 const TECHNIQUE_ICONS = {
-  'Passing': '⟶', 'Guard': '◉', 'Closed Guard': '⊕', 'Judo Trips': '↯',
+  'Passing': '⟶', 'Guard': '◉', 'Closed Guard': '⊕', 'Takedowns': '↯',
   'Mount': '▲', 'Back Control': '◀', 'Submissions': '✕',
   'Escapes': '↗', 'Leg Locks': '⌇', 'Other': '◈'
 };
 
 const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
 
+const clean = (str) => (str || '').replace(/\?{2,}/g, '--');
+
 function LogRow({ log, onClick, onDelete }) {
   return (
-    <div className="log-row-wrapper">
-      <button className="session-row" onClick={onClick}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+      <button className="session-row" style={{ flex: 1, marginBottom: 0 }} onClick={onClick}>
         <div className="session-row-icon">{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
         <div className="session-row-info">
-          <div className="session-row-title">{log.title.toUpperCase()}</div>
+          <div className="session-row-title">{clean(log.title).toUpperCase()}</div>
           <div className="session-row-date">{log.date}</div>
         </div>
         {log.technique && <div className="session-tag">{log.technique.toUpperCase()}</div>}
       </button>
-      <button className="trash-btn" onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
+      <button className="trash-btn" style={{ flexShrink: 0, minWidth: '40px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
     </div>
   );
 }
@@ -42,16 +54,11 @@ export default function App() {
   const [selectedTechnique, setSelectedTechnique] = useState(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setAuthLoading(false);
-    });
+    const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); });
     return unsub;
   }, []);
 
-  useEffect(() => {
-    if (user) fetchLogs();
-  }, [user]);
+  useEffect(() => { if (user) fetchLogs(); }, [user]);
 
   const fetchLogs = async () => {
     try {
@@ -63,9 +70,7 @@ export default function App() {
 
   const addLog = async (log) => {
     try {
-      const docRef = await addDoc(collection(db, `users/${HARDCODED_UID}/logs`), {
-        ...log, createdAt: serverTimestamp()
-      });
+      const docRef = await addDoc(collection(db, `users/${HARDCODED_UID}/logs`), { ...log, createdAt: serverTimestamp() });
       setLogs([{ id: docRef.id, ...log }, ...logs]);
       setScreen('home');
     } catch (e) { console.error(e); }
@@ -86,18 +91,11 @@ export default function App() {
   };
 
   const handleGoogleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (e) { console.error(e); }
+    try { const provider = new GoogleAuthProvider(); await signInWithPopup(auth, provider); }
+    catch (e) { console.error(e); }
   };
 
-  const handleSignOut = async () => {
-    await signOut(auth);
-    setLogs([]);
-    setScreen('home');
-  };
-
+  const handleSignOut = async () => { await signOut(auth); setLogs([]); setScreen('home'); };
   const getTechniqueCount = (t) => logs.filter(l => l.technique === t).length;
   const getLogsForTechnique = (t) => logs.filter(l => l.technique === t);
 
@@ -107,7 +105,7 @@ export default function App() {
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} />;
   if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
   if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} />;
-  if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} techniques={TECHNIQUES} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} />;
+  if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} />;
   if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
 }
 
@@ -200,9 +198,7 @@ function NotesInput({ notes, setNotes }) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) { alert('Voice not supported.'); return; }
     const r = new SR();
-    r.continuous = true;
-    r.interimResults = false;
-    r.lang = 'en-US';
+    r.continuous = true; r.interimResults = false; r.lang = 'en-US';
     r.onresult = (e) => {
       const t = Array.from(e.results).map(r => r[0].transcript).join(' ');
       setNotes(prev => prev ? prev + ' ' + t : t);
@@ -214,10 +210,7 @@ function NotesInput({ notes, setNotes }) {
     setRecording(true);
   };
 
-  const stopVoice = () => {
-    if (recognitionRef.current) recognitionRef.current.stop();
-    setRecording(false);
-  };
+  const stopVoice = () => { if (recognitionRef.current) recognitionRef.current.stop(); setRecording(false); };
 
   const handleAISummarize = async () => {
     if (!notes.trim()) { alert('Add notes first.'); return; }
@@ -231,21 +224,13 @@ function NotesInput({ notes, setNotes }) {
       const data = await res.json();
       if (data.summary) setNotes(data.summary);
       else alert('Failed: ' + (data.error || 'Unknown'));
-    } catch (e) {
-      alert('Failed: ' + e.message);
-    }
+    } catch (e) { alert('Failed: ' + e.message); }
     setAiLoading(false);
   };
 
   return (
     <>
-      <textarea
-        className="form-input textarea"
-        placeholder="Type, speak, or paste. Tap Speak multiple times to keep adding."
-        value={notes}
-        onChange={e => setNotes(e.target.value)}
-        style={{ minHeight: '200px' }}
-      />
+      <textarea className="form-input textarea" placeholder="Type, speak, or paste. Tap Speak multiple times to keep adding." value={notes} onChange={e => setNotes(e.target.value)} style={{ minHeight: '200px' }} />
       <div className="notes-actions">
         <button className={`mic-btn-small ${recording ? 'recording' : ''}`} onClick={() => recording ? stopVoice() : startVoice()}>
           {recording ? '⏹ STOP' : '🎙 SPEAK'}
@@ -300,9 +285,7 @@ function NewLogScreen({ setScreen, addLog }) {
           <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
           <NotesInput notes={notes} setNotes={setNotes} />
         </div>
-        <button className="btn-primary" onClick={handleSubmit} disabled={saving}>
-          {saving ? 'SAVING...' : 'SAVE SESSION'}
-        </button>
+        <button className="btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'SAVING...' : 'SAVE SESSION'}</button>
       </div>
     </div>
   );
@@ -342,10 +325,7 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
     setRecording(true);
   };
 
-  const stopVoice = () => {
-    if (recognitionRef.current) recognitionRef.current.stop();
-    setRecording(false);
-  };
+  const stopVoice = () => { if (recognitionRef.current) recognitionRef.current.stop(); setRecording(false); };
 
   const handleAISummarize = async () => {
     if (!notes.trim()) { alert('Add notes first.'); return; }
@@ -370,7 +350,6 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
           <button className="btn-back" style={{ margin: 0 }} onClick={() => setScreen('viewLogs')}>← BACK</button>
           <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
         </div>
-
         <div className="detail-meta">
           <input className="detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
           <div className="detail-meta-inline">
@@ -381,14 +360,8 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
             </select>
           </div>
         </div>
-
         <div className="detail-notes-section">
-          <textarea
-            className="detail-notes-textarea"
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder="Notes..."
-          />
+          <textarea className="detail-notes-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..." />
           <div className="notes-actions">
             <button className={`mic-btn-small ${recording ? 'recording' : ''}`} onClick={() => recording ? stopVoice() : startVoice()}>
               {recording ? '⏹ STOP' : '🎙 SPEAK'}
@@ -404,6 +377,16 @@ function LogDetailScreen({ setScreen, log, updateLog }) {
 }
 
 function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
+  const [filter, setFilter] = useState('ALL');
+  const [search, setSearch] = useState('');
+
+  const categories = ['ALL', ...TECHNIQUES];
+
+  const filtered = logs
+    .filter(l => filter === 'ALL' || (l.technique || 'Other') === filter)
+    .filter(l => !search || clean(l.title).toLowerCase().includes(search.toLowerCase()) || (l.notes || '').toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -412,8 +395,14 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
           <p className="inner-label">HISTORY</p>
           <h2 className="inner-title">ALL<br/>SESSIONS</h2>
         </div>
-        {logs.length === 0 && <p className="empty-state">No sessions logged yet.</p>}
-        {logs.map(log => (
+        <input className="search-bar" placeholder="Search sessions..." value={search} onChange={e => setSearch(e.target.value)} />
+        <div className="filter-bar">
+          {categories.map(cat => (
+            <button key={cat} className={`filter-chip ${filter === cat ? 'active' : ''}`} onClick={() => setFilter(cat)}>{cat}</button>
+          ))}
+        </div>
+        {filtered.length === 0 && <p className="empty-state">No sessions found.</p>}
+        {filtered.map(log => (
           <LogRow key={log.id} log={log}
             onClick={() => { setSelectedLog(log); setScreen('logDetail'); }}
             onDelete={() => deleteLog(log.id)}
@@ -424,7 +413,20 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
   );
 }
 
-function TechniquesScreen({ setScreen, techniques, getTechniqueCount, setSelectedTechnique }) {
+function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique }) {
+  const [search, setSearch] = useState('');
+  const [openSections, setOpenSections] = useState({});
+
+  const toggleSection = (section) => {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const filteredTree = Object.entries(TECHNIQUE_TREE).filter(([section, subs]) => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    return section.toLowerCase().includes(s) || subs.some(sub => sub.toLowerCase().includes(s));
+  });
+
   return (
     <div className="app">
       <div className="screen inner-screen">
@@ -433,17 +435,30 @@ function TechniquesScreen({ setScreen, techniques, getTechniqueCount, setSelecte
           <p className="inner-label">LIBRARY</p>
           <h2 className="inner-title">TECH-<br/>NIQUES</h2>
         </div>
-        {techniques.map((t) => (
-          <button key={t} className="nav-row" onClick={() => { setSelectedTechnique(t); setScreen('techniqueDetail'); }}>
-            <div className="nav-row-left">
-              <div className="nav-icon-circle"><span className="nav-icon">{TECHNIQUE_ICONS[t]}</span></div>
-              <div className="technique-info">
-                <span className="nav-row-label">{t.toUpperCase()}</span>
-                <span className="technique-count">{getTechniqueCount(t)} sessions</span>
+
+        <input className="search-bar" placeholder="Search techniques..." value={search} onChange={e => setSearch(e.target.value)} />
+
+        {filteredTree.map(([section, subs]) => (
+          <div key={section} className="technique-section">
+            <button className="technique-section-header" onClick={() => toggleSection(section)}>
+              <div className="technique-section-left">
+                <span className="technique-section-icon">{TECHNIQUE_ICONS[section] || '◈'}</span>
+                <span className="technique-section-name">{section.toUpperCase()}</span>
+                <span className="technique-section-count">{getTechniqueCount(section)}</span>
               </div>
-            </div>
-            <span className="nav-chevron">›</span>
-          </button>
+              <span className="technique-section-chevron">{openSections[section] ? '∨' : '›'}</span>
+            </button>
+            {openSections[section] && (
+              <div className="technique-subsections">
+                {subs.filter(sub => !search || sub.toLowerCase().includes(search.toLowerCase()) || section.toLowerCase().includes(search.toLowerCase())).map(sub => (
+                  <button key={sub} className="technique-sub-row" onClick={() => { setSelectedTechnique(section); setScreen('techniqueDetail'); }}>
+                    <span className="technique-sub-name">{sub}</span>
+                    <span className="technique-sub-chevron">›</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>
