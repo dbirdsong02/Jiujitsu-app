@@ -26,7 +26,7 @@ html, body { height: 100%; background: #000000; color: #fff; -webkit-font-smooth
 .nav-chevron { color: #333; font-size: 28px; line-height: 1; font-weight: 300; }
 
 /* RECENT */
-.recent-section { padding: 8px 20px 40px; }
+.recent-section { padding: 8px 12px 40px; }
 .recent-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .recent-header-left { display: flex; align-items: center; gap: 10px; }
 .recent-bar { width: 3px; height: 18px; background: #fff; border-radius: 2px; flex-shrink: 0; }
@@ -34,10 +34,10 @@ html, body { height: 100%; background: #000000; color: #fff; -webkit-font-smooth
 .view-all-btn { background: none; border: none; font-family: 'Barlow', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 2px; color: #444; cursor: pointer; text-transform: uppercase; }
 
 /* SESSION ROW */
-.session-row { width: 100%; background: #111111; border: 1px solid #1f1f1f; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; text-align: left; transition: background 0.12s; }
+.session-row { width: 100%; background: #111111; border: 1px solid #1f1f1f; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; text-align: left; transition: background 0.12s; box-sizing: border-box; }
 .session-row:active { background: #1a1a1a; }
 .session-row-icon { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #222; background: #0a0a0a; display: flex; align-items: center; justify-content: center; font-size: 15px; color: #666; flex-shrink: 0; }
-.session-row-info { flex: 1; min-width: 0; }
+.session-row-info { flex: 1; min-width: 0; overflow: hidden; }
 /* FIX 2: smaller title font so full text shows */
 .session-row-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px; color: #fff; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .session-row-date { font-family: 'Barlow', sans-serif; font-size: 10px; color: #555; margin-top: 3px; letter-spacing: 1px; display: block; }
@@ -51,7 +51,7 @@ html, body { height: 100%; background: #000000; color: #fff; -webkit-font-smooth
 .empty-state { font-family: 'Barlow', sans-serif; font-size: 13px; color: #2a2a2a; margin-top: 40px; text-align: center; letter-spacing: 2px; text-transform: uppercase; }
 
 /* INNER SCREENS */
-.inner-screen { padding: 56px 20px 60px; }
+.inner-screen { padding: 56px 12px 60px; }
 .inner-header { margin-bottom: 36px; }
 .inner-label { font-family: 'Barlow', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 3px; color: #444; margin-bottom: 8px; text-transform: uppercase; display: block; }
 .inner-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 900; font-size: 80px; line-height: 0.85; letter-spacing: -2px; color: #fff; text-transform: uppercase; display: block; margin-bottom: 10px; }
@@ -65,7 +65,7 @@ html, body { height: 100%; background: #000000; color: #fff; -webkit-font-smooth
 /* FORM */
 .form-group { margin-bottom: 22px; }
 .form-label { display: flex; align-items: center; gap: 10px; font-family: 'Barlow', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 2px; color: #444; margin-bottom: 10px; text-transform: uppercase; }
-.form-input { width: 100%; padding: 16px 18px; background: #111111; border: 1px solid #1f1f1f; border-radius: 12px; color: #fff; font-size: 15px; font-family: 'Barlow', sans-serif; appearance: none; -webkit-appearance: none; outline: none; transition: border-color 0.15s; }
+.form-input { width: 100%; padding: 16px 18px; background: #111111; border: 1px solid #1f1f1f; border-radius: 12px; color: #fff; font-size: 15px; font-family: 'Barlow', sans-serif; appearance: none; -webkit-appearance: none; outline: none; transition: border-color 0.15s; text-align: left; }
 .form-input:focus { border-color: #333; }
 .form-input.error { border-color: #6b0000; }
 .form-input option { background: #111111; }
@@ -210,3 +210,37 @@ html, body { height: 100%; background: #000000; color: #fff; -webkit-font-smooth
 .technique-sub-row:active { background: #111; }
 .technique-sub-name { font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: 1px; color: #888; text-transform: uppercase; }
 .technique-sub-chevron { color: #333; font-size: 16px; }
+
+/* ADD SUBCATEGORY BUTTONS */
+.btn-add-sub {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  color: #aaa;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0 18px;
+  height: 52px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-add-sub:active {
+  background: #fff;
+  color: #000;
+}
+
+.btn-cancel-sub {
+  background: none;
+  border: 1px solid #222;
+  border-radius: 10px;
+  color: #444;
+  font-size: 16px;
+  padding: 0 14px;
+  height: 52px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
