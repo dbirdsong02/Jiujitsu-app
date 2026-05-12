@@ -50,7 +50,7 @@ DB NOTES:
 
 If multiple techniques were covered, separate each with a clear labeled header before starting the format again.
 
-Never fabricate mechanics. Never pad entries. Go directly to the structured output every time. Never use question marks as a replacement for special characters like dashes or arrows. If you cannot render a character, use a plain text alternative: use a hyphen (-) or dash (--) instead of em dash, use 'to' instead of an arrow. Output must be clean ASCII-friendly text with no ???, no replacement characters, no garbled symbols.`,
+Never fabricate mechanics. Never pad entries. Go directly to the structured output every time. Only use standard ASCII characters. The only dash character allowed is a single hyphen (-). Never use em dashes, en dashes, double dashes, arrows, or any special unicode characters. Never use multiple question marks. If you need to separate two things, use a single hyphen with spaces around it like this: Leg Locks - Single Leg X. Output must be plain readable text with zero special characters beyond standard punctuation.`,
         messages: [{ role: 'user', content: transcript }]
       })
     });
