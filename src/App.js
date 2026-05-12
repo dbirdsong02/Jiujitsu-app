@@ -317,7 +317,7 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory }) {
       </div>
       <div className="form-group">
         <label className="form-label">TITLE {titleError && <span className="error-msg">{titleError}</span>}</label>
-        <input className={`form-input ${titleError ? 'error' : ''}`} placeholder="e.g. 5/14/26 - Knee Slice Pass" value={title} onChange={e => { setTitle(e.target.value); setTitleError(''); }} />
+        <input className={`form-input ${titleError ? 'error' : ''}`} placeholder="Knee Slice Pass" value={title} onChange={e => { setTitle(e.target.value); setTitleError(''); }} />
       </div>
       <div className="form-group">
         <label className="form-label">DATE <span className="optional-label">OPTIONAL</span></label>
