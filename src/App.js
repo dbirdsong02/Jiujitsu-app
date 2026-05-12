@@ -6,16 +6,16 @@ import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, dele
 
 const DEFAULT_TECHNIQUE_TREE = {
   'Closed Guard': ['Sweeps', 'Submissions', 'Guard Break Defense', 'Posture Control'],
-  'Half Guard': ['Lockdown', 'Deep Half', 'Passing Half Guard', 'Escapes', 'Guide'],
+  'Half Guard': ['Arm Attacks', 'Deep Half', 'Sweeps/Reversals', 'Octopus Guard', 'Coyote Guard', 'Other'],
   'Open Guard': ['De La Riva', 'Reverse DLR', 'Butterfly', 'X Guard', 'Single Leg X / K Guard', 'Spider', 'Lasso', 'Guard Retention'],
   'Mount': ['Maintaining Mount', 'Mount Attacks', 'Mount Escapes', 'S Mount'],
   'Back': ['Taking the Back', 'Maintaining Back', 'Back Attacks', 'Back Escapes'],
   'Side Control': ['Maintaining Side Control', 'Side Control Attacks', 'Side Control Escapes', 'North South'],
-  'Passing': ['Knee Slice', 'Smash Pass', 'Torreando', 'Over-Under', 'Leg Drag', 'Headquarters', 'Body Lock Pass'],
-  'Judo': ['O Soto Gari', 'O Uchi Gari', 'Seoi Nage', 'Foot Sweeps', 'Trips', 'Judo Defense'],
-  'Wrestling': ['Double Leg', 'Single Leg', 'Arm Drag', 'Inside Trip', 'Clinch Work', 'Wrestling Defense'],
+  'Passing': ['Dynamic', 'Outside Passing', 'Pressure Passing', 'Inside Passing', 'Passing Positions'],
+  'Judo': ['Throws', 'Takedowns', 'Trips'],
+  'Wrestling': ['Double Leg', 'Single Leg', 'Arm Drag', 'Clinch Work', 'Wrestling Defense'],
   'Leg Locks': ['Straight Ankle Lock', 'Heel Hook', 'Knee Bar', 'Toe Hold', 'Ashi Garami / Entries', '50/50'],
-  'Other': ['Concepts', 'Drills', 'Improvement Notes', 'General'],
+  'Other': ['Concepts', 'Drills', 'Improvement Notes', 'Comp Notes', 'Issues'],
 };
 
 const TECHNIQUE_ICONS = {
@@ -30,7 +30,7 @@ const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
 function LogRow({ log, onClick, onDelete }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px' }}>
       <button className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0 }} onClick={onClick}>
         <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
         <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
@@ -39,7 +39,7 @@ function LogRow({ log, onClick, onDelete }) {
         </div>
         {log.technique && <div className="session-tag" style={{ flexShrink: 0 }}>{log.technique.toUpperCase()}</div>}
       </button>
-      <button className="trash-btn" style={{ flexShrink: 0, width: '44px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
+      <button className="trash-btn" style={{ flexShrink: 0, width: '36px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
     </div>
   );
 }
@@ -197,7 +197,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
 function SubcategorySelect({ technique, subtechnique, setSubtechnique, techniqueTree, addSubcategory }) {
   const [adding, setAdding] = useState(false);
   const [newSub, setNewSub] = useState('');
-
   const subs = techniqueTree[technique] || [];
 
   const handleAdd = async () => {
@@ -215,21 +214,15 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
       <label className="form-label">SUBCATEGORY <span className="optional-label">OPTIONAL</span></label>
       {!adding ? (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <select className="form-input" style={{ flex: 1 }} value={subtechnique} onChange={e => setSubtechnique(e.target.value)}>
-            <option value="">Select subcategory...</option>
-            {subs.map(s => <option key={s} value={s}>{s}</option>)}
+          <select className="form-input" style={{ flex: 1 }} value={subtechnique || 'Other'} onChange={e => setSubtechnique(e.target.value)}>
+            <option value="Other">Other</option>
+            {subs.filter(s => s !== 'Other').map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <button className="btn-add-sub" onClick={() => setAdding(true)}>+</button>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input
-            className="form-input"
-            style={{ flex: 1 }}
-            placeholder="New subcategory..."
-            value={newSub}
-            onChange={e => setNewSub(e.target.value)}
-          />
+          <input className="form-input" style={{ flex: 1 }} placeholder="New subcategory..." value={newSub} onChange={e => setNewSub(e.target.value)} />
           <button className="btn-add-sub" onClick={handleAdd}>SAVE</button>
           <button className="btn-cancel-sub" onClick={() => { setAdding(false); setNewSub(''); }}>✕</button>
         </div>
@@ -310,14 +303,17 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory }) {
 
   return (
     <div className="app"><div className="screen inner-screen">
-      <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+      <div className="topbar-row">
+        <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+        <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+      </div>
       <div className="inner-header">
         <p className="inner-label">NEW ENTRY</p>
         <h2 className="inner-title">LOG<br/>SESSION</h2>
       </div>
       <div className="form-group">
         <label className="form-label">TITLE {titleError && <span className="error-msg">{titleError}</span>}</label>
-        <input className={`form-input ${titleError ? 'error' : ''}`} placeholder="Knee Slice Pass" value={title} onChange={e => { setTitle(e.target.value); setTitleError(''); }} />
+        <input className={`form-input ${titleError ? 'error' : ''}`} placeholder="e.g. Knee Slice Pass" value={title} onChange={e => { setTitle(e.target.value); setTitleError(''); }} />
       </div>
       <div className="form-group">
         <label className="form-label">DATE <span className="optional-label">OPTIONAL</span></label>
@@ -395,9 +391,12 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
 
   return (
     <div className="app"><div className="screen inner-screen">
-      <div className="detail-topbar">
+      <div className="topbar-row">
         <button className="btn-back" style={{ margin: 0 }} onClick={() => setScreen('viewLogs')}>← BACK</button>
-        <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+          <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
+        </div>
       </div>
       <div className="detail-meta">
         <input className="detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
@@ -440,7 +439,10 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
 
   return (
     <div className="app"><div className="screen inner-screen">
-      <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+      <div className="topbar-row">
+        <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+        <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+      </div>
       <div className="inner-header">
         <p className="inner-label">HISTORY</p>
         <h2 className="inner-title">ALL<br/>SESSIONS</h2>
@@ -474,7 +476,10 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, 
 
   return (
     <div className="app"><div className="screen inner-screen">
-      <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+      <div className="topbar-row">
+        <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+        <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+      </div>
       <div className="inner-header">
         <p className="inner-label">LIBRARY</p>
         <h2 className="inner-title">TECH-<br/>NIQUES</h2>
@@ -509,7 +514,10 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, 
 function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, deleteLog }) {
   return (
     <div className="app"><div className="screen inner-screen">
-      <button className="btn-back" onClick={() => setScreen('techniques')}>← BACK</button>
+      <div className="topbar-row">
+        <button className="btn-back" onClick={() => setScreen('techniques')}>← BACK</button>
+        <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+      </div>
       <div className="inner-header">
         <p className="inner-label">POSITION</p>
         <h2 className="inner-title">{technique.toUpperCase()}</h2>
