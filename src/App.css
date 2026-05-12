@@ -273,3 +273,14 @@ html, body { height: 100%; background: #000000; color: #fff; -webkit-font-smooth
 .home-btn:active {
   opacity: 0.6;
 }
+
+
+/* DATE INPUT LEFT ALIGN */
+input[type="date"] {
+  text-align: left;
+  -webkit-text-align: left;
+}
+
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
