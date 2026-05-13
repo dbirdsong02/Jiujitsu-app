@@ -5,16 +5,16 @@ import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, doc, deleteDoc, updateDoc, setDoc, getDoc } from 'firebase/firestore';
 
 const DEFAULT_TECHNIQUE_TREE = {
-  'Closed Guard': ['Sweeps', 'Submissions', 'Guard Break Defense', 'Posture Control'],
   'Half Guard': ['Arm Attacks', 'Deep Half', 'Sweeps/Reversals', 'Octopus Guard', 'Coyote Guard', 'Other'],
   'Open Guard': ['De La Riva', 'Reverse DLR', 'Butterfly', 'X Guard', 'Single Leg X / K Guard', 'Spider', 'Lasso', 'Guard Retention'],
-  'Mount': ['Maintaining Mount', 'Mount Attacks', 'Mount Escapes', 'S Mount'],
+  'Passing': ['Outside Passing', 'Inside Passing', 'Dynamic', 'Pressure Passing', 'Passing Concepts'],
+  'Closed Guard': ['Sweeps', 'Submissions', 'Guard Break Defense', 'Posture Control'],
+  'Mount': ['Mount Concepts', 'Mount Attacks', 'Mount Escapes', 'S Mount'],
   'Back': ['Taking the Back', 'Maintaining Back', 'Back Attacks', 'Back Escapes'],
   'Side Control': ['Maintaining Side Control', 'Side Control Attacks', 'Side Control Escapes', 'North South'],
-  'Passing': ['Dynamic', 'Outside Passing', 'Pressure Passing', 'Inside Passing', 'Passing Positions'],
+  'Leg Locks': ['50/50', 'Single Leg X', 'Cross Ashi', 'Outside Ashi', 'Saddle', 'Knee Shield Ashi'],
   'Judo': ['Throws', 'Takedowns', 'Trips'],
   'Wrestling': ['Double Leg', 'Single Leg', 'Arm Drag', 'Clinch Work', 'Wrestling Defense'],
-  'Leg Locks': ['Straight Ankle Lock', 'Heel Hook', 'Knee Bar', 'Toe Hold', 'Ashi Garami / Entries', '50/50'],
   'Other': ['Concepts', 'Drills', 'Improvement Notes', 'Comp Notes', 'Issues'],
 };
 
@@ -39,7 +39,7 @@ function LogRow({ log, onClick, onDelete }) {
         </div>
         {log.technique && <div className="session-tag" style={{ flexShrink: 0 }}>{log.technique.toUpperCase()}</div>}
       </button>
-      <button className="trash-btn" style={{ flexShrink: 0, width: '36px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
+      <button className="trash-btn" style={{ flexShrink: 0, width: '28px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
     </div>
   );
 }
@@ -88,6 +88,11 @@ export default function App() {
     await saveTechniqueTree(updated);
   };
 
+  const removeSubcategory = async (position, sub) => {
+    const updated = { ...techniqueTree, [position]: (techniqueTree[position] || []).filter(s => s !== sub) };
+    await saveTechniqueTree(updated);
+  };
+
   const addLog = async (log) => {
     try {
       const docRef = await addDoc(collection(db, `users/${HARDCODED_UID}/logs`), { ...log, createdAt: serverTimestamp() });
@@ -122,9 +127,9 @@ export default function App() {
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
   if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} />;
-  if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />;
+  if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
   if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} techniqueTree={techniqueTree} />;
-  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />;
+  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
   if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} techniqueTree={techniqueTree} />;
   if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
 }
@@ -178,7 +183,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
       </div>
       <div className="recent-section">
         <div className="recent-header">
-          <div className="recent-header-left"><div className="recent-bar" /><span className="recent-label">RECENT SESSIONS</span></div>
+          <div className="recent-header-left"><div className="recent-bar" /><span className="recent-label">RECENT</span></div>
           {logs.length > 0 && <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>}
         </div>
         {logs.length === 0 && <div className="empty-state">No sessions logged yet.</div>}
@@ -197,6 +202,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
 function SubcategorySelect({ technique, subtechnique, setSubtechnique, techniqueTree, addSubcategory }) {
   const [adding, setAdding] = useState(false);
   const [newSub, setNewSub] = useState('');
+
   const subs = techniqueTree[technique] || [];
 
   const handleAdd = async () => {
@@ -214,15 +220,21 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
       <label className="form-label">SUBCATEGORY <span className="optional-label">OPTIONAL</span></label>
       {!adding ? (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <select className="form-input" style={{ flex: 1 }} value={subtechnique || 'Other'} onChange={e => setSubtechnique(e.target.value)}>
+          <select className="form-input" style={{ flex: 1 }} value={subtechnique} onChange={e => setSubtechnique(e.target.value)}>
             <option value="Other">Other</option>
-            {subs.filter(s => s !== 'Other').map(s => <option key={s} value={s}>{s}</option>)}
+            {subs.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <button className="btn-add-sub" onClick={() => setAdding(true)}>+</button>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input className="form-input" style={{ flex: 1 }} placeholder="New subcategory..." value={newSub} onChange={e => setNewSub(e.target.value)} />
+          <input
+            className="form-input"
+            style={{ flex: 1 }}
+            placeholder="New subcategory..."
+            value={newSub}
+            onChange={e => setNewSub(e.target.value)}
+          />
           <button className="btn-add-sub" onClick={handleAdd}>SAVE</button>
           <button className="btn-cancel-sub" onClick={() => { setAdding(false); setNewSub(''); }}>✕</button>
         </div>
@@ -285,7 +297,7 @@ function NotesInput({ notes, setNotes }) {
   );
 }
 
-function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory }) {
+function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, removeSubcategory }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [technique, setTechnique] = useState('');
@@ -326,7 +338,7 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory }) {
           {Object.keys(techniqueTree).map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
-      <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />
+      <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />
       <div className="form-group">
         <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
         <NotesInput notes={notes} setNotes={setNotes} />
@@ -336,7 +348,7 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory }) {
   );
 }
 
-function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcategory }) {
+function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcategory, removeSubcategory }) {
   const [title, setTitle] = useState(log?.title || '');
   const [date, setDate] = useState(log?.date || '');
   const [technique, setTechnique] = useState(log?.technique || '');
@@ -391,12 +403,9 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
 
   return (
     <div className="app"><div className="screen inner-screen">
-      <div className="topbar-row">
+      <div className="detail-topbar">
         <button className="btn-back" style={{ margin: 0 }} onClick={() => setScreen('viewLogs')}>← BACK</button>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
-          <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
-        </div>
+        <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
       </div>
       <div className="detail-meta">
         <input className="detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
@@ -409,7 +418,7 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
         </div>
         {technique && (
           <div style={{ marginTop: '8px' }}>
-            <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />
+            <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />
           </div>
         )}
       </div>
