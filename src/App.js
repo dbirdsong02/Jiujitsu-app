@@ -25,7 +25,7 @@ const TECHNIQUE_ICONS = {
   'Leg Locks': '⌇', 'Other': '◈'
 };
 
-const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
+const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
 function LogRow({ log, onClick, onDelete }) {
@@ -51,6 +51,7 @@ export default function App() {
   const [logs, setLogs] = useState([]);
   const [selectedLog, setSelectedLog] = useState(null);
   const [selectedTechnique, setSelectedTechnique] = useState(null);
+  const [selectedSubtechnique, setSelectedSubtechnique] = useState(null);
   const [techniqueTree, setTechniqueTree] = useState(DEFAULT_TECHNIQUE_TREE);
 
   useEffect(() => {
@@ -130,8 +131,8 @@ export default function App() {
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
   if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} techniqueTree={techniqueTree} />;
   if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
-  if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} techniqueTree={techniqueTree} />;
-  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
+  if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} setSelectedSubtechnique={setSelectedSubtechnique} techniqueTree={techniqueTree} />;
+  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} selectedSubtechnique={selectedSubtechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} removeSubcategory={removeSubcategory} techniqueTree={techniqueTree} />;
 }
 
 function LoadingScreen() {
@@ -471,7 +472,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
   );
 }
 
-function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, techniqueTree }) {
+function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, setSelectedSubtechnique, techniqueTree }) {
   const [search, setSearch] = useState('');
   const [openSections, setOpenSections] = useState({});
 
@@ -507,7 +508,7 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, 
           {openSections[section] && (
             <div className="technique-subsections">
               {subs.filter(sub => !search || sub.toLowerCase().includes(search.toLowerCase()) || section.toLowerCase().includes(search.toLowerCase())).map(sub => (
-                <button key={sub} className="technique-sub-row" onClick={() => { setSelectedTechnique(section); setScreen('techniqueDetail'); }}>
+                <button key={sub} className="technique-sub-row" onClick={() => { setSelectedTechnique(section); setSelectedSubtechnique(sub); setScreen('techniqueDetail'); }}>
                   <span className="technique-sub-name">{sub}</span>
                   <span className="technique-sub-chevron">›</span>
                 </button>
@@ -520,7 +521,18 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, 
   );
 }
 
-function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, deleteLog }) {
+function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, logs, setSelectedLog, deleteLog, removeSubcategory, techniqueTree }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDeleteSub = async () => {
+    await removeSubcategory(technique, selectedSubtechnique);
+    setScreen('techniques');
+  };
+
+  const filteredLogs = selectedSubtechnique
+    ? logs.filter(l => l.subtechnique === selectedSubtechnique)
+    : logs;
+
   return (
     <div className="app"><div className="screen inner-screen">
       <div className="topbar-row">
@@ -528,14 +540,31 @@ function TechniqueDetailScreen({ setScreen, technique, logs, setSelectedLog, del
         <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
       </div>
       <div className="inner-header">
-        <p className="inner-label">POSITION</p>
-        <h2 className="inner-title">{technique.toUpperCase()}</h2>
-        <p className="inner-label">{logs.length} SESSIONS</p>
+        <p className="inner-label">{technique.toUpperCase()}</p>
+        <h2 className="inner-title">{selectedSubtechnique ? selectedSubtechnique.toUpperCase() : technique.toUpperCase()}</h2>
+        <p className="inner-label">{filteredLogs.length} SESSIONS</p>
       </div>
-      {logs.length === 0 && <p className="empty-state">No sessions for this position yet.</p>}
-      {logs.map(log => (
+      {filteredLogs.length === 0 && <p className="empty-state">No sessions here yet.</p>}
+      {filteredLogs.map(log => (
         <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
       ))}
+      {selectedSubtechnique && selectedSubtechnique !== 'Other' && (
+        <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #111' }}>
+          {confirmDelete ? (
+            <div style={{ background: '#1a0000', border: '1px solid #6b0000', borderRadius: '12px', padding: '16px' }}>
+              <p style={{ fontFamily: 'Barlow, sans-serif', fontSize: '12px', color: '#cc3333', letterSpacing: '1px', textAlign: 'center', marginBottom: '12px', textTransform: 'uppercase' }}>Delete "{selectedSubtechnique}"?</p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={handleDeleteSub} style={{ flex: 1, background: '#6b0000', border: 'none', borderRadius: '10px', color: '#fff', fontFamily: 'Barlow Condensed, sans-serif', fontSize: '14px', fontWeight: '700', letterSpacing: '2px', padding: '14px', cursor: 'pointer' }}>CONFIRM DELETE</button>
+                <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, background: 'none', border: '1px solid #222', borderRadius: '10px', color: '#555', fontFamily: 'Barlow, sans-serif', fontSize: '12px', letterSpacing: '1px', padding: '14px', cursor: 'pointer' }}>CANCEL</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 'none', color: '#333', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', display: 'block', margin: '0 auto', padding: '8px' }}>
+              Delete subcategory
+            </button>
+          )}
+        </div>
+      )}
     </div></div>
   );
 }
