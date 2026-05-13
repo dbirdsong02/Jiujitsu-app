@@ -25,7 +25,7 @@ const TECHNIQUE_ICONS = {
   'Leg Locks': '⌇', 'Other': '◈'
 };
 
-const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
+const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
 function LogRow({ log, onClick, onDelete }) {
