@@ -240,28 +240,29 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
   );
 }
 
-// #3 Multi-tag selector
+// #3 Multi-tag selector - shows subcategories of selected position
 function TagSelector({ tags, setTags, techniqueTree, technique }) {
-  const allPositions = Object.keys(techniqueTree);
+  const subs = technique ? (techniqueTree[technique] || []) : [];
+  if (!technique || subs.length === 0) return null;
   return (
     <div className="form-group">
-      <label className="form-label">POSITIONS / TAGS <span className="optional-label">SELECT ALL THAT APPLY</span></label>
+      <label className="form-label">ALSO TAG AS <span className="optional-label">OPTIONAL</span></label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {allPositions.map(pos => (
+        {subs.map(sub => (
           <button
-            key={pos}
+            key={sub}
             type="button"
             onClick={() => {
-              if (tags.includes(pos)) setTags(tags.filter(t => t !== pos));
-              else setTags([...tags, pos]);
+              if (tags.includes(sub)) setTags(tags.filter(t => t !== sub));
+              else setTags([...tags, sub]);
             }}
             style={{
               padding: '8px 14px',
               borderRadius: '20px',
               border: '1px solid',
-              borderColor: tags.includes(pos) ? '#fff' : '#1f1f1f',
-              background: tags.includes(pos) ? '#fff' : '#111',
-              color: tags.includes(pos) ? '#000' : '#555',
+              borderColor: tags.includes(sub) ? '#fff' : '#1f1f1f',
+              background: tags.includes(sub) ? '#fff' : '#111',
+              color: tags.includes(sub) ? '#000' : '#555',
               fontFamily: 'Barlow, sans-serif',
               fontSize: '10px',
               fontWeight: '600',
@@ -270,7 +271,7 @@ function TagSelector({ tags, setTags, techniqueTree, technique }) {
               cursor: 'pointer',
             }}
           >
-            {pos}
+            {sub}
           </button>
         ))}
       </div>
@@ -619,6 +620,4 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
     </div></div>
   );
 }
-
-
 
