@@ -241,7 +241,7 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
 }
 
 // #3 Multi-tag selector
-function TagSelector({ tags, setTags, techniqueTree }) {
+function TagSelector({ tags, setTags, techniqueTree, technique }) {
   const allPositions = Object.keys(techniqueTree);
   return (
     <div className="form-group">
@@ -389,7 +389,7 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, remove
         </select>
       </div>
       <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />
-      <TagSelector tags={tags} setTags={setTags} techniqueTree={techniqueTree} />
+      <TagSelector tags={tags} setTags={setTags} techniqueTree={techniqueTree} technique={technique} />
       <div className="form-group">
         <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
         <NotesInput notes={notes} setNotes={setNotes} technique={technique} subtechnique={subtechnique} />
@@ -471,7 +471,7 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
           </div>
         )}
         <div style={{ marginTop: '8px' }}>
-          <TagSelector tags={tags} setTags={setTags} techniqueTree={techniqueTree} />
+          <TagSelector tags={tags} setTags={setTags} techniqueTree={techniqueTree} technique={technique} />
         </div>
       </div>
       <div className="detail-notes-section">
@@ -619,3 +619,6 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
     </div></div>
   );
 }
+
+
+
