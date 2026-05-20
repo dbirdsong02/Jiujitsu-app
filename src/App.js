@@ -28,12 +28,6 @@ const TECHNIQUE_ICONS = {
 const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
-const isCompNotes = (technique, subtechnique) =>
-  subtechnique === 'Comp Notes' || (technique === 'Other' && subtechnique === 'Comp Notes');
-
-const isImprovementNotes = (technique, subtechnique) =>
-  subtechnique === 'Improvement Notes' || subtechnique === 'Issues';
-
 function LogRow({ log, onClick, onDelete }) {
   const tags = log.tags || (log.technique ? [log.technique] : []);
   return (
