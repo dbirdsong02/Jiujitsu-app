@@ -25,19 +25,26 @@ const TECHNIQUE_ICONS = {
   'Leg Locks': '⌇', 'Other': '◈'
 };
 
-const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjt6Vk1';
+const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
+const isCompNotes = (technique, subtechnique) =>
+  subtechnique === 'Comp Notes' || (technique === 'Other' && subtechnique === 'Comp Notes');
+
+const isImprovementNotes = (technique, subtechnique) =>
+  subtechnique === 'Improvement Notes' || subtechnique === 'Issues';
+
 function LogRow({ log, onClick, onDelete }) {
+  const tags = log.tags || (log.technique ? [log.technique] : []);
   return (
     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px' }}>
       <button className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0 }} onClick={onClick}>
-        <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
+        <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[tags[0]] || '◈'}</div>
         <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
           <div className="session-row-title">{clean(log.title).toUpperCase()}</div>
           <div className="session-row-date">{log.date}</div>
         </div>
-        {log.technique && <div className="session-tag" style={{ flexShrink: 0 }}>{log.technique.toUpperCase()}</div>}
+        {tags.length > 0 && <div className="session-tag" style={{ flexShrink: 0 }}>{tags[0].toUpperCase()}{tags.length > 1 ? ` +${tags.length - 1}` : ''}</div>}
       </button>
       <button className="trash-btn" style={{ flexShrink: 0, width: '28px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
     </div>
@@ -122,8 +129,10 @@ export default function App() {
   };
 
   const handleSignOut = async () => { await signOut(auth); setLogs([]); setScreen('home'); };
-  const getTechniqueCount = (t) => logs.filter(l => l.technique === t).length;
-  const getLogsForTechnique = (t) => logs.filter(l => l.technique === t);
+
+  // #3 Multi-tag: filter by tag array
+  const getTechniqueCount = (t) => logs.filter(l => (l.tags || [l.technique]).includes(t)).length;
+  const getLogsForTechnique = (t) => logs.filter(l => (l.tags || [l.technique]).includes(t));
 
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
@@ -170,11 +179,11 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
       </div>
       <div className="nav-list">
         <button className="nav-row" onClick={() => setScreen('newLog')}>
-          <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">+</span></div><span className="nav-row-label">NEW LOG</span></div>
+          <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">+</span></div><span className="nav-row-label">NEW ENTRY</span></div>
           <span className="nav-chevron">›</span>
         </button>
         <button className="nav-row" onClick={() => setScreen('viewLogs')}>
-          <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">≡</span></div><span className="nav-row-label">ALL SESSIONS</span></div>
+          <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">≡</span></div><span className="nav-row-label">ALL ENTRIES</span></div>
           <span className="nav-chevron">›</span>
         </button>
         <button className="nav-row" onClick={() => setScreen('techniques')}>
@@ -187,7 +196,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
           <div className="recent-header-left"><div className="recent-bar" /><span className="recent-label">RECENT</span></div>
           {logs.length > 0 && <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>}
         </div>
-        {logs.length === 0 && <div className="empty-state">No sessions logged yet.</div>}
+        {logs.length === 0 && <div className="empty-state">No entries yet.</div>}
         {logs.slice(0, 3).map(log => (
           <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
         ))}
@@ -203,7 +212,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
 function SubcategorySelect({ technique, subtechnique, setSubtechnique, techniqueTree, addSubcategory }) {
   const [adding, setAdding] = useState(false);
   const [newSub, setNewSub] = useState('');
-
   const subs = techniqueTree[technique] || [];
 
   const handleAdd = async () => {
@@ -221,21 +229,15 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
       <label className="form-label">SUBCATEGORY <span className="optional-label">OPTIONAL</span></label>
       {!adding ? (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <select className="form-input" style={{ flex: 1 }} value={subtechnique} onChange={e => setSubtechnique(e.target.value)}>
+          <select className="form-input" style={{ flex: 1 }} value={subtechnique || 'Other'} onChange={e => setSubtechnique(e.target.value)}>
             <option value="Other">Other</option>
-            {subs.map(s => <option key={s} value={s}>{s}</option>)}
+            {subs.filter(s => s !== 'Other').map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <button className="btn-add-sub" onClick={() => setAdding(true)}>+</button>
         </div>
       ) : (
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <input
-            className="form-input"
-            style={{ flex: 1 }}
-            placeholder="New subcategory..."
-            value={newSub}
-            onChange={e => setNewSub(e.target.value)}
-          />
+          <input className="form-input" style={{ flex: 1 }} placeholder="New subcategory..." value={newSub} onChange={e => setNewSub(e.target.value)} />
           <button className="btn-add-sub" onClick={handleAdd}>SAVE</button>
           <button className="btn-cancel-sub" onClick={() => { setAdding(false); setNewSub(''); }}>✕</button>
         </div>
@@ -244,7 +246,57 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
   );
 }
 
-function NotesInput({ notes, setNotes }) {
+// #3 Multi-tag selector
+function TagSelector({ tags, setTags, techniqueTree }) {
+  const allPositions = Object.keys(techniqueTree);
+  return (
+    <div className="form-group">
+      <label className="form-label">POSITIONS / TAGS <span className="optional-label">SELECT ALL THAT APPLY</span></label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {allPositions.map(pos => (
+          <button
+            key={pos}
+            type="button"
+            onClick={() => {
+              if (tags.includes(pos)) setTags(tags.filter(t => t !== pos));
+              else setTags([...tags, pos]);
+            }}
+            style={{
+              padding: '8px 14px',
+              borderRadius: '20px',
+              border: '1px solid',
+              borderColor: tags.includes(pos) ? '#fff' : '#1f1f1f',
+              background: tags.includes(pos) ? '#fff' : '#111',
+              color: tags.includes(pos) ? '#000' : '#555',
+              fontFamily: 'Barlow, sans-serif',
+              fontSize: '10px',
+              fontWeight: '600',
+              letterSpacing: '1px',
+              textTransform: 'uppercase',
+              cursor: 'pointer',
+            }}
+          >
+            {pos}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// #1 Conditional AI summarize - passes technique/subtechnique context
+async function aiSummarize(notes, technique, subtechnique) {
+  const res = await fetch('/api/summarize', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ transcript: notes, technique, subtechnique })
+  });
+  const data = await res.json();
+  if (data.summary) return data.summary;
+  throw new Error(data.error || 'Unknown error');
+}
+
+function NotesInput({ notes, setNotes, technique, subtechnique }) {
   const [recording, setRecording] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const recognitionRef = useRef(null);
@@ -271,14 +323,8 @@ function NotesInput({ notes, setNotes }) {
     if (!notes.trim()) { alert('Add notes first.'); return; }
     setAiLoading(true);
     try {
-      const res = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: notes })
-      });
-      const data = await res.json();
-      if (data.summary) setNotes(data.summary);
-      else alert('Failed: ' + (data.error || 'Unknown'));
+      const summary = await aiSummarize(notes, technique, subtechnique);
+      setNotes(summary);
     } catch (e) { alert('Failed: ' + e.message); }
     setAiLoading(false);
   };
@@ -303,14 +349,23 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, remove
   const [date, setDate] = useState('');
   const [technique, setTechnique] = useState('');
   const [subtechnique, setSubtechnique] = useState('');
+  const [tags, setTags] = useState([]);
   const [notes, setNotes] = useState('');
   const [titleError, setTitleError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Keep tags in sync with primary technique
+  const handleTechniqueChange = (t) => {
+    setTechnique(t);
+    setSubtechnique('');
+    if (t && !tags.includes(t)) setTags([t]);
+    else if (!t) setTags([]);
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) { setTitleError('Title is required'); return; }
     setSaving(true);
-    await addLog({ title: title.trim(), date, technique, subtechnique, notes });
+    await addLog({ title: title.trim(), date, technique, subtechnique, tags: tags.length ? tags : (technique ? [technique] : []), notes });
     setSaving(false);
   };
 
@@ -322,7 +377,7 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, remove
       </div>
       <div className="inner-header">
         <p className="inner-label">NEW ENTRY</p>
-        <h2 className="inner-title">LOG<br/>SESSION</h2>
+        <h2 className="inner-title">LOG<br/>ENTRY</h2>
       </div>
       <div className="form-group">
         <label className="form-label">TITLE {titleError && <span className="error-msg">{titleError}</span>}</label>
@@ -333,18 +388,19 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, remove
         <input className="form-input" type="date" value={date} onChange={e => setDate(e.target.value)} />
       </div>
       <div className="form-group">
-        <label className="form-label">POSITION <span className="optional-label">OPTIONAL</span></label>
-        <select className="form-input" value={technique} onChange={e => { setTechnique(e.target.value); setSubtechnique(''); }}>
+        <label className="form-label">PRIMARY POSITION <span className="optional-label">OPTIONAL</span></label>
+        <select className="form-input" value={technique} onChange={e => handleTechniqueChange(e.target.value)}>
           <option value="">Select position...</option>
           {Object.keys(techniqueTree).map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
-      <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />
+      <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />
+      <TagSelector tags={tags} setTags={setTags} techniqueTree={techniqueTree} />
       <div className="form-group">
         <label className="form-label">NOTES <span className="optional-label">OPTIONAL</span></label>
-        <NotesInput notes={notes} setNotes={setNotes} />
+        <NotesInput notes={notes} setNotes={setNotes} technique={technique} subtechnique={subtechnique} />
       </div>
-      <button className="btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'SAVING...' : 'SAVE SESSION'}</button>
+      <button className="btn-primary" onClick={handleSubmit} disabled={saving}>{saving ? 'SAVING...' : 'SAVE ENTRY'}</button>
     </div></div>
   );
 }
@@ -354,6 +410,7 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
   const [date, setDate] = useState(log?.date || '');
   const [technique, setTechnique] = useState(log?.technique || '');
   const [subtechnique, setSubtechnique] = useState(log?.subtechnique || '');
+  const [tags, setTags] = useState(log?.tags || (log?.technique ? [log.technique] : []));
   const [notes, setNotes] = useState(log?.notes || '');
   const [saved, setSaved] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -363,7 +420,7 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
   if (!log) { setScreen('home'); return null; }
 
   const handleSave = async () => {
-    await updateLog(log.id, { title: title.trim(), date, technique, subtechnique, notes });
+    await updateLog(log.id, { title: title.trim(), date, technique, subtechnique, tags: tags.length ? tags : (technique ? [technique] : []), notes });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
@@ -390,14 +447,8 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
     if (!notes.trim()) { alert('Add notes first.'); return; }
     setAiLoading(true);
     try {
-      const res = await fetch('/api/summarize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: notes })
-      });
-      const data = await res.json();
-      if (data.summary) setNotes(data.summary);
-      else alert('Failed: ' + (data.error || 'Unknown'));
+      const summary = await aiSummarize(notes, technique, subtechnique);
+      setNotes(summary);
     } catch (e) { alert('Failed: ' + e.message); }
     setAiLoading(false);
   };
@@ -406,7 +457,10 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
     <div className="app"><div className="screen inner-screen">
       <div className="detail-topbar">
         <button className="btn-back" style={{ margin: 0 }} onClick={() => setScreen('viewLogs')}>← BACK</button>
-        <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button className="home-btn" style={{ fontSize: '26px', background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }} onClick={() => setScreen('home')}>⌂</button>
+          <button className="save-inline-btn" onClick={handleSave}>{saved ? '✓ SAVED' : 'SAVE'}</button>
+        </div>
       </div>
       <div className="detail-meta">
         <input className="detail-title-input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Title" />
@@ -419,9 +473,12 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
         </div>
         {technique && (
           <div style={{ marginTop: '8px' }}>
-            <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />
+            <SubcategorySelect technique={technique} subtechnique={subtechnique} setSubtechnique={setSubtechnique} techniqueTree={techniqueTree} addSubcategory={addSubcategory} />
           </div>
         )}
+        <div style={{ marginTop: '8px' }}>
+          <TagSelector tags={tags} setTags={setTags} techniqueTree={techniqueTree} />
+        </div>
       </div>
       <div className="detail-notes-section">
         <textarea className="detail-notes-textarea" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notes..." />
@@ -443,7 +500,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
   const [search, setSearch] = useState('');
 
   const filtered = logs
-    .filter(l => filter === 'ALL' || (l.technique || 'Other') === filter)
+    .filter(l => filter === 'ALL' || (l.tags || [l.technique]).includes(filter))
     .filter(l => !search || clean(l.title).toLowerCase().includes(search.toLowerCase()) || (l.notes || '').toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
@@ -455,7 +512,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
       </div>
       <div className="inner-header">
         <p className="inner-label">HISTORY</p>
-        <h2 className="inner-title">ALL<br/>SESSIONS</h2>
+        <h2 className="inner-title">ALL<br/>ENTRIES</h2>
       </div>
       <div className="filter-row">
         <input className="search-bar-inline" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -464,7 +521,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
           {Object.keys(techniqueTree).map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
-      {filtered.length === 0 && <p className="empty-state">No sessions found.</p>}
+      {filtered.length === 0 && <p className="empty-state">No entries found.</p>}
       {filtered.map(log => (
         <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
       ))}
@@ -542,9 +599,9 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
       <div className="inner-header">
         <p className="inner-label">{technique.toUpperCase()}</p>
         <h2 className="inner-title">{selectedSubtechnique ? selectedSubtechnique.toUpperCase() : technique.toUpperCase()}</h2>
-        <p className="inner-label">{filteredLogs.length} SESSIONS</p>
+        <p className="inner-label">{filteredLogs.length} {filteredLogs.length === 1 ? 'ENTRY' : 'ENTRIES'}</p>
       </div>
-      {filteredLogs.length === 0 && <p className="empty-state">No sessions here yet.</p>}
+      {filteredLogs.length === 0 && <p className="empty-state">No entries here yet.</p>}
       {filteredLogs.map(log => (
         <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
       ))}
