@@ -12,23 +12,25 @@ const DEFAULT_TECHNIQUE_TREE = {
   'Mount': ['Mount Concepts', 'Mount Attacks', 'Mount Escapes', 'S Mount'],
   'Back': ['Taking the Back', 'Maintaining Back', 'Back Attacks', 'Back Escapes'],
   'Side Control': ['Maintaining Side Control', 'Side Control Attacks', 'Side Control Escapes', 'North South'],
+  'Upper Body Subs': ['Guillotine', 'Darce', 'Anaconda', 'Arm Triangle', 'Rear Naked Choke', 'North South Choke', 'Other'],
   'Leg Locks': ['50/50', 'Single Leg X', 'Cross Ashi', 'Outside Ashi', 'Saddle', 'Knee Shield Ashi'],
   'Judo': ['Throws', 'Takedowns', 'Trips'],
   'Wrestling': ['Double Leg', 'Single Leg', 'Arm Drag', 'Clinch Work', 'Wrestling Defense'],
-  'Other': ['Concepts', 'Drills', 'Improvement Notes', 'Comp Notes', 'Issues'],
+  'Other': ['Concepts', 'Drills', 'Improvement Notes', 'Comp Notes', 'Issues', 'Active'],
 };
 
 const TECHNIQUE_ICONS = {
   'Closed Guard': '⊕', 'Half Guard': '◑', 'Open Guard': '◉',
   'Mount': '▲', 'Back': '◀', 'Side Control': '▶',
   'Passing': '⟶', 'Judo': '↯', 'Wrestling': '⤵',
-  'Leg Locks': '⌇', 'Other': '◈'
+  'Leg Locks': '⌇', 'Other': '◈', 'Upper Body Subs': '✕'
 };
 
 const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
-function LogRow({ log, onClick, onDelete }) {
+// #2 LogRow without trash - full width, click to open
+function LogRow({ log, onClick, onDelete, showTrash = true }) {
   const tags = log.tags || (log.technique ? [log.technique] : []);
   return (
     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px' }}>
@@ -40,7 +42,9 @@ function LogRow({ log, onClick, onDelete }) {
         </div>
         {tags.length > 0 && <div className="session-tag" style={{ flexShrink: 0 }}>{tags[0].toUpperCase()}{tags.length > 1 ? ` +${tags.length - 1}` : ''}</div>}
       </button>
-      <button className="trash-btn" style={{ flexShrink: 0, width: '28px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
+      {showTrash && (
+        <button className="trash-btn" style={{ flexShrink: 0, width: '28px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
+      )}
     </div>
   );
 }
@@ -124,16 +128,18 @@ export default function App() {
 
   const handleSignOut = async () => { await signOut(auth); setLogs([]); setScreen('home'); };
 
-  // #3 Multi-tag: filter by tag array
   const getTechniqueCount = (t) => logs.filter(l => (l.tags || [l.technique]).includes(t)).length;
   const getLogsForTechnique = (t) => logs.filter(l => (l.tags || [l.technique]).includes(t));
+  // #1 Active entries
+  const getActiveEntries = () => logs.filter(l => l.subtechnique === 'Active' || (l.tags || []).includes('Active'));
 
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
-  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} />;
+  if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} activeEntries={getActiveEntries()} />;
   if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
   if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} techniqueTree={techniqueTree} />;
-  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
+  if (screen === 'active') return <ActiveScreen setScreen={setScreen} logs={getActiveEntries()} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
+  if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} deleteLog={deleteLog} />;
   if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} setSelectedSubtechnique={setSelectedSubtechnique} techniqueTree={techniqueTree} />;
   if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} selectedSubtechnique={selectedSubtechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} removeSubcategory={removeSubcategory} techniqueTree={techniqueTree} />;
 }
@@ -164,13 +170,14 @@ function SignInScreen({ onSignIn }) {
   );
 }
 
-function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog }) {
+function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLog, activeEntries }) {
   return (
     <div className="app"><div className="screen home-screen">
       <div className="home-hero">
         <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
         <div className="hero-divider"><div className="hero-line" /><span className="hero-sub">TRAINING JOURNAL</span><div className="hero-line" /></div>
       </div>
+      {/* #3 Nav buttons match recent entry width - use same padding as recent-section */}
       <div className="nav-list">
         <button className="nav-row" onClick={() => setScreen('newLog')}>
           <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">+</span></div><span className="nav-row-label">NEW ENTRY</span></div>
@@ -184,6 +191,11 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
           <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">◈</span></div><span className="nav-row-label">TECHNIQUES</span></div>
           <span className="nav-chevron">›</span>
         </button>
+        {/* #1 Active tab */}
+        <button className="nav-row" onClick={() => setScreen('active')}>
+          <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">◎</span></div><span className="nav-row-label">ACTIVE</span></div>
+          <span className="nav-chevron">›</span>
+        </button>
       </div>
       <div className="recent-section">
         <div className="recent-header">
@@ -191,14 +203,35 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
           {logs.length > 0 && <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>}
         </div>
         {logs.length === 0 && <div className="empty-state">No entries yet.</div>}
+        {/* #2 No trash on home recent entries */}
         {logs.slice(0, 3).map(log => (
-          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
+          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={false} />
         ))}
       </div>
       <div className="signout-row">
         <p className="signout-user">{user.displayName}</p>
         <button className="signout-btn" onClick={onSignOut}>SIGN OUT</button>
       </div>
+    </div></div>
+  );
+}
+
+// #1 Active screen
+function ActiveScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
+  return (
+    <div className="app"><div className="screen inner-screen">
+      <div className="topbar-row">
+        <button className="btn-back" onClick={() => setScreen('home')}>← BACK</button>
+        <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+      </div>
+      <div className="inner-header">
+        <p className="inner-label">CURRENT FOCUS</p>
+        <h2 className="inner-title">ACTIVE</h2>
+      </div>
+      {logs.length === 0 && <p className="empty-state">No active entries. Tag an entry as "Active" to see it here.</p>}
+      {logs.map(log => (
+        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={true} />
+      ))}
     </div></div>
   );
 }
@@ -240,7 +273,6 @@ function SubcategorySelect({ technique, subtechnique, setSubtechnique, technique
   );
 }
 
-// #3 Multi-tag selector - shows subcategories of selected position
 function TagSelector({ tags, setTags, techniqueTree, technique }) {
   const subs = technique ? (techniqueTree[technique] || []) : [];
   if (!technique || subs.length === 0) return null;
@@ -249,37 +281,26 @@ function TagSelector({ tags, setTags, techniqueTree, technique }) {
       <label className="form-label">ALSO TAG AS <span className="optional-label">OPTIONAL</span></label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         {subs.map(sub => (
-          <button
-            key={sub}
-            type="button"
+          <button key={sub} type="button"
             onClick={() => {
               if (tags.includes(sub)) setTags(tags.filter(t => t !== sub));
               else setTags([...tags, sub]);
             }}
             style={{
-              padding: '8px 14px',
-              borderRadius: '20px',
-              border: '1px solid',
+              padding: '8px 14px', borderRadius: '20px', border: '1px solid',
               borderColor: tags.includes(sub) ? '#fff' : '#1f1f1f',
               background: tags.includes(sub) ? '#fff' : '#111',
               color: tags.includes(sub) ? '#000' : '#555',
-              fontFamily: 'Barlow, sans-serif',
-              fontSize: '10px',
-              fontWeight: '600',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              cursor: 'pointer',
+              fontFamily: 'Barlow, sans-serif', fontSize: '10px', fontWeight: '600',
+              letterSpacing: '1px', textTransform: 'uppercase', cursor: 'pointer',
             }}
-          >
-            {sub}
-          </button>
+          >{sub}</button>
         ))}
       </div>
     </div>
   );
 }
 
-// #1 Conditional AI summarize - passes technique/subtechnique context
 async function aiSummarize(notes, technique, subtechnique) {
   const res = await fetch('/api/summarize', {
     method: 'POST',
@@ -349,7 +370,6 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, remove
   const [titleError, setTitleError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Keep tags in sync with primary technique
   const handleTechniqueChange = (t) => {
     setTechnique(t);
     setSubtechnique('');
@@ -400,7 +420,7 @@ function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, remove
   );
 }
 
-function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcategory, removeSubcategory }) {
+function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcategory, removeSubcategory, deleteLog }) {
   const [title, setTitle] = useState(log?.title || '');
   const [date, setDate] = useState(log?.date || '');
   const [technique, setTechnique] = useState(log?.technique || '');
@@ -408,6 +428,7 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
   const [tags, setTags] = useState(log?.tags || (log?.technique ? [log.technique] : []));
   const [notes, setNotes] = useState(log?.notes || '');
   const [saved, setSaved] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [recording, setRecording] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const recognitionRef = useRef(null);
@@ -418,6 +439,11 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
     await updateLog(log.id, { title: title.trim(), date, technique, subtechnique, tags: tags.length ? tags : (technique ? [technique] : []), notes });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
+  };
+
+  const handleDelete = async () => {
+    await deleteLog(log.id);
+    setScreen('viewLogs');
   };
 
   const startVoice = () => {
@@ -486,6 +512,22 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
           </button>
         </div>
       </div>
+      {/* #2 Delete button at bottom of detail screen */}
+      <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1px solid #111' }}>
+        {confirmDelete ? (
+          <div style={{ background: '#1a0000', border: '1px solid #6b0000', borderRadius: '12px', padding: '16px' }}>
+            <p style={{ fontFamily: 'Barlow, sans-serif', fontSize: '12px', color: '#cc3333', letterSpacing: '1px', textAlign: 'center', marginBottom: '12px', textTransform: 'uppercase' }}>Delete this entry?</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={handleDelete} style={{ flex: 1, background: '#6b0000', border: 'none', borderRadius: '10px', color: '#fff', fontFamily: 'Barlow Condensed, sans-serif', fontSize: '14px', fontWeight: '700', letterSpacing: '2px', padding: '14px', cursor: 'pointer' }}>CONFIRM DELETE</button>
+              <button onClick={() => setConfirmDelete(false)} style={{ flex: 1, background: 'none', border: '1px solid #222', borderRadius: '10px', color: '#555', fontFamily: 'Barlow, sans-serif', fontSize: '12px', letterSpacing: '1px', padding: '14px', cursor: 'pointer' }}>CANCEL</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmDelete(true)} style={{ background: 'none', border: 'none', color: '#333', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', display: 'block', margin: '0 auto', padding: '8px' }}>
+            Delete entry
+          </button>
+        )}
+      </div>
     </div></div>
   );
 }
@@ -518,7 +560,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
       </div>
       {filtered.length === 0 && <p className="empty-state">No entries found.</p>}
       {filtered.map(log => (
-        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
+        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={true} />
       ))}
     </div></div>
   );
@@ -598,7 +640,7 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
       </div>
       {filteredLogs.length === 0 && <p className="empty-state">No entries here yet.</p>}
       {filteredLogs.map(log => (
-        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} />
+        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={true} />
       ))}
       {selectedSubtechnique && selectedSubtechnique !== 'Other' && (
         <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #111' }}>
@@ -620,4 +662,3 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
     </div></div>
   );
 }
-
