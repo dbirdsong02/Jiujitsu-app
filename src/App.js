@@ -29,22 +29,19 @@ const TECHNIQUE_ICONS = {
 const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
-// #2 LogRow without trash - full width, click to open
-function LogRow({ log, onClick, onDelete, showTrash = true }) {
+// LogRow - full width, no trash, click to open
+function LogRow({ log, onClick }) {
   const tags = log.tags || (log.technique ? [log.technique] : []);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px' }}>
-      <button className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0 }} onClick={onClick}>
+    <div style={{ marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px' }}>
+      <button className="session-row" style={{ width: '100%', marginBottom: 0, minWidth: 0 }} onClick={onClick}>
         <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[tags[0]] || '◈'}</div>
         <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-          <div className="session-row-title">{clean(log.title).toUpperCase()}</div>
+          <div className="session-row-title" style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clean(log.title).toUpperCase()}</div>
           <div className="session-row-date">{log.date}</div>
         </div>
         {tags.length > 0 && <div className="session-tag" style={{ flexShrink: 0 }}>{tags[0].toUpperCase()}{tags.length > 1 ? ` +${tags.length - 1}` : ''}</div>}
       </button>
-      {showTrash && (
-        <button className="trash-btn" style={{ flexShrink: 0, width: '28px', minHeight: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px' }} onClick={e => { e.stopPropagation(); onDelete(); }}>🗑</button>
-      )}
     </div>
   );
 }
@@ -205,7 +202,7 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
         {logs.length === 0 && <div className="empty-state">No entries yet.</div>}
         {/* #2 No trash on home recent entries */}
         {logs.slice(0, 3).map(log => (
-          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={false} />
+          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
         ))}
       </div>
       <div className="signout-row">
@@ -230,7 +227,7 @@ function ActiveScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
       </div>
       {logs.length === 0 && <p className="empty-state">No active entries. Tag an entry as "Active" to see it here.</p>}
       {logs.map(log => (
-        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={true} />
+        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
       ))}
     </div></div>
   );
@@ -560,7 +557,7 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
       </div>
       {filtered.length === 0 && <p className="empty-state">No entries found.</p>}
       {filtered.map(log => (
-        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={true} />
+        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
       ))}
     </div></div>
   );
@@ -624,7 +621,10 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
   };
 
   const filteredLogs = selectedSubtechnique
-    ? logs.filter(l => l.subtechnique === selectedSubtechnique)
+    ? logs.filter(l => 
+        l.subtechnique === selectedSubtechnique || 
+        (l.tags || []).includes(selectedSubtechnique)
+      )
     : logs;
 
   return (
@@ -640,7 +640,7 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
       </div>
       {filteredLogs.length === 0 && <p className="empty-state">No entries here yet.</p>}
       {filteredLogs.map(log => (
-        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} onDelete={() => deleteLog(log.id)} showTrash={true} />
+        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
       ))}
       {selectedSubtechnique && selectedSubtechnique !== 'Other' && (
         <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #111' }}>
