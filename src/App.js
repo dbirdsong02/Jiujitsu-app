@@ -55,6 +55,14 @@ export default function App() {
   const [selectedTechnique, setSelectedTechnique] = useState(null);
   const [selectedSubtechnique, setSelectedSubtechnique] = useState(null);
   const [techniqueTree, setTechniqueTree] = useState(DEFAULT_TECHNIQUE_TREE);
+  const [preloadTechnique, setPreloadTechnique] = useState('');
+  const [preloadSubtechnique, setPreloadSubtechnique] = useState('');
+
+  const handleNewEntry = (technique = '', subtechnique = '') => {
+    setPreloadTechnique(technique);
+    setPreloadSubtechnique(subtechnique);
+    setScreen('newLog');
+  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => { setUser(u); setAuthLoading(false); });
@@ -133,12 +141,12 @@ export default function App() {
   if (authLoading) return <LoadingScreen />;
   if (!user) return <SignInScreen onSignIn={handleGoogleSignIn} />;
   if (screen === 'home') return <HomeScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} user={user} onSignOut={handleSignOut} deleteLog={deleteLog} activeEntries={getActiveEntries()} />;
-  if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} />;
-  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} techniqueTree={techniqueTree} />;
+  if (screen === 'newLog') return <NewLogScreen setScreen={setScreen} addLog={addLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} preloadTechnique={preloadTechnique} preloadSubtechnique={preloadSubtechnique} />;
+  if (screen === 'viewLogs') return <ViewLogsScreen setScreen={setScreen} logs={logs} setSelectedLog={setSelectedLog} deleteLog={deleteLog} techniqueTree={techniqueTree} onNewEntry={handleNewEntry} />;
   if (screen === 'active') return <ActiveScreen setScreen={setScreen} logs={getActiveEntries()} setSelectedLog={setSelectedLog} deleteLog={deleteLog} />;
   if (screen === 'logDetail') return <LogDetailScreen setScreen={setScreen} log={selectedLog} updateLog={updateLog} techniqueTree={techniqueTree} addSubcategory={addSubcategory} removeSubcategory={removeSubcategory} deleteLog={deleteLog} />;
   if (screen === 'techniques') return <TechniquesScreen setScreen={setScreen} getTechniqueCount={getTechniqueCount} setSelectedTechnique={setSelectedTechnique} setSelectedSubtechnique={setSelectedSubtechnique} techniqueTree={techniqueTree} />;
-  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} selectedSubtechnique={selectedSubtechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} removeSubcategory={removeSubcategory} techniqueTree={techniqueTree} />;
+  if (screen === 'techniqueDetail') return <TechniqueDetailScreen setScreen={setScreen} technique={selectedTechnique} selectedSubtechnique={selectedSubtechnique} logs={getLogsForTechnique(selectedTechnique)} setSelectedLog={setSelectedLog} deleteLog={deleteLog} removeSubcategory={removeSubcategory} techniqueTree={techniqueTree} onNewEntry={handleNewEntry} />;
 }
 
 function LoadingScreen() {
@@ -357,12 +365,12 @@ function NotesInput({ notes, setNotes, technique, subtechnique }) {
   );
 }
 
-function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, removeSubcategory }) {
+function NewLogScreen({ setScreen, addLog, techniqueTree, addSubcategory, removeSubcategory, preloadTechnique, preloadSubtechnique }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
-  const [technique, setTechnique] = useState('');
-  const [subtechnique, setSubtechnique] = useState('');
-  const [tags, setTags] = useState([]);
+  const [technique, setTechnique] = useState(preloadTechnique || '');
+  const [subtechnique, setSubtechnique] = useState(preloadSubtechnique || '');
+  const [tags, setTags] = useState(preloadTechnique ? [preloadTechnique] : []);
   const [notes, setNotes] = useState('');
   const [titleError, setTitleError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -529,7 +537,7 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
   );
 }
 
-function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueTree }) {
+function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueTree, onNewEntry }) {
   const [filter, setFilter] = useState('ALL');
   const [search, setSearch] = useState('');
 
@@ -552,9 +560,12 @@ function ViewLogsScreen({ setScreen, logs, setSelectedLog, deleteLog, techniqueT
         <input className="search-bar-inline" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} />
         <select className="filter-dropdown" value={filter} onChange={e => setFilter(e.target.value)}>
           <option value="ALL">All</option>
-          {Object.keys(techniqueTree).map(t => <option key={t} value={t}>{t}</option>)}
+          {Object.keys(techniqueTree).sort().map(t => <option key={t} value={t}>{t}</option>)}
         </select>
       </div>
+      <button onClick={() => onNewEntry(filter !== 'ALL' ? filter : '')} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: '1px solid #1f1f1f', borderRadius: '12px', color: '#888', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '10px 16px', marginBottom: '12px', width: '100%' }}>
+        <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> NEW ENTRY{filter !== 'ALL' ? ` — ${filter.toUpperCase()}` : ''}
+      </button>
       {filtered.length === 0 && <p className="empty-state">No entries found.</p>}
       {filtered.map(log => (
         <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
@@ -612,7 +623,7 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, 
   );
 }
 
-function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, logs, setSelectedLog, deleteLog, removeSubcategory, techniqueTree }) {
+function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, logs, setSelectedLog, deleteLog, removeSubcategory, techniqueTree, onNewEntry }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleDeleteSub = async () => {
