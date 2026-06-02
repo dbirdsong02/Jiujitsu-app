@@ -653,6 +653,9 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
       {filteredLogs.map(log => (
         <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
       ))}
+      <button onClick={() => onNewEntry(technique, selectedSubtechnique)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: '1px solid #1f1f1f', borderRadius: '12px', color: '#888', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '10px 16px', marginTop: '8px', marginBottom: '12px', width: '100%' }}>
+        <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> NEW ENTRY
+      </button>
       {selectedSubtechnique && selectedSubtechnique !== 'Other' && (
         <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #111' }}>
           {confirmDelete ? (
