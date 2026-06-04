@@ -620,7 +620,7 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const [orderedLogs, setOrderedLogs] = useState(null);
-  const dragIdx = useRef(null);
+  const touchState = useRef({ dragging: false, fromIdx: null, toIdx: null, startY: 0 });
 
   const filteredLogs = selectedSubtechnique
     ? logs.filter(l => l.subtechnique === selectedSubtechnique || (l.tags || []).includes(selectedSubtechnique))
@@ -643,22 +643,36 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
 
   const displayLogs = orderedLogs || getOrdered();
 
-  const handleDragStart = (e, idx) => {
-    dragIdx.current = idx;
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e, idx) => {
-    e.preventDefault();
-    if (dragIdx.current === null || dragIdx.current === idx) return;
+  const moveItem = (fromIdx, toIdx) => {
+    if (fromIdx === toIdx) return;
     const updated = [...displayLogs];
-    const [moved] = updated.splice(dragIdx.current, 1);
-    updated.splice(idx, 0, moved);
-    dragIdx.current = idx;
+    const [moved] = updated.splice(fromIdx, 1);
+    updated.splice(toIdx, 0, moved);
+    touchState.current.fromIdx = toIdx;
     setOrderedLogs(updated);
   };
 
-  const handleDragEnd = () => { dragIdx.current = null; };
+  const handleTouchStart = (e, idx) => {
+    touchState.current = { dragging: true, fromIdx: idx, toIdx: idx, startY: e.touches[0].clientY };
+  };
+
+  const handleTouchMove = (e, idx) => {
+    e.preventDefault();
+    if (!touchState.current.dragging) return;
+    const y = e.touches[0].clientY;
+    const diff = y - touchState.current.startY;
+    const ROW_HEIGHT = 58;
+    const steps = Math.round(diff / ROW_HEIGHT);
+    const newIdx = Math.max(0, Math.min(displayLogs.length - 1, (touchState.current.fromIdx || idx) + steps));
+    if (newIdx !== touchState.current.toIdx) {
+      touchState.current.toIdx = newIdx;
+      moveItem(touchState.current.fromIdx, newIdx);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchState.current.dragging = false;
+  };
 
   const handleDone = () => {
     try { localStorage.setItem(orderKey, JSON.stringify(displayLogs.map(l => l.id))); } catch(e) {}
@@ -688,19 +702,19 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
         <h2 className="inner-title">{selectedSubtechnique ? selectedSubtechnique.toUpperCase() : technique.toUpperCase()}</h2>
         <p className="inner-label">{filteredLogs.length} {filteredLogs.length === 1 ? 'ENTRY' : 'ENTRIES'}</p>
       </div>
+      {editing && <p style={{ fontFamily: 'Barlow, sans-serif', fontSize: '10px', color: '#444', letterSpacing: '1px', textAlign: 'center', marginBottom: '12px' }}>HOLD AND DRAG ☰ TO REORDER</p>}
       {filteredLogs.length === 0 && <p className="empty-state">No entries here yet.</p>}
       {displayLogs.map((log, idx) => (
         editing ? (
           <div
             key={log.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, idx)}
-            onDragOver={(e) => handleDragOver(e, idx)}
-            onDragEnd={handleDragEnd}
-            style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px', cursor: 'grab' }}
+            onTouchStart={(e) => handleTouchStart(e, idx)}
+            onTouchMove={(e) => handleTouchMove(e, idx)}
+            onTouchEnd={handleTouchEnd}
+            style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px', touchAction: 'none' }}
           >
-            <span style={{ color: '#333', fontSize: '20px', paddingRight: '10px', flexShrink: 0, userSelect: 'none' }}>☰</span>
-            <div className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0, cursor: 'grab' }}>
+            <span style={{ color: '#555', fontSize: '22px', paddingRight: '12px', flexShrink: 0, userSelect: 'none', touchAction: 'none' }}>☰</span>
+            <div className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0 }}>
               <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
               <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                 <div className="session-row-title" style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clean(log.title).toUpperCase()}</div>
