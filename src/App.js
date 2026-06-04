@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import './App.css';
 import { auth, db } from './firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
@@ -620,7 +621,6 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const [orderedLogs, setOrderedLogs] = useState(null);
-  const touchState = useRef({ dragging: false, fromIdx: null, toIdx: null, startY: 0 });
 
   const filteredLogs = selectedSubtechnique
     ? logs.filter(l => l.subtechnique === selectedSubtechnique || (l.tags || []).includes(selectedSubtechnique))
@@ -643,35 +643,12 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
 
   const displayLogs = orderedLogs || getOrdered();
 
-  const moveItem = (fromIdx, toIdx) => {
-    if (fromIdx === toIdx) return;
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
     const updated = [...displayLogs];
-    const [moved] = updated.splice(fromIdx, 1);
-    updated.splice(toIdx, 0, moved);
-    touchState.current.fromIdx = toIdx;
+    const [moved] = updated.splice(result.source.index, 1);
+    updated.splice(result.destination.index, 0, moved);
     setOrderedLogs(updated);
-  };
-
-  const handleTouchStart = (e, idx) => {
-    touchState.current = { dragging: true, fromIdx: idx, toIdx: idx, startY: e.touches[0].clientY };
-  };
-
-  const handleTouchMove = (e, idx) => {
-    e.preventDefault();
-    if (!touchState.current.dragging) return;
-    const y = e.touches[0].clientY;
-    const diff = y - touchState.current.startY;
-    const ROW_HEIGHT = 58;
-    const steps = Math.round(diff / ROW_HEIGHT);
-    const newIdx = Math.max(0, Math.min(displayLogs.length - 1, (touchState.current.fromIdx || idx) + steps));
-    if (newIdx !== touchState.current.toIdx) {
-      touchState.current.toIdx = newIdx;
-      moveItem(touchState.current.fromIdx, newIdx);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    touchState.current.dragging = false;
   };
 
   const handleDone = () => {
@@ -702,30 +679,48 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
         <h2 className="inner-title">{selectedSubtechnique ? selectedSubtechnique.toUpperCase() : technique.toUpperCase()}</h2>
         <p className="inner-label">{filteredLogs.length} {filteredLogs.length === 1 ? 'ENTRY' : 'ENTRIES'}</p>
       </div>
-      {editing && <p style={{ fontFamily: 'Barlow, sans-serif', fontSize: '10px', color: '#444', letterSpacing: '1px', textAlign: 'center', marginBottom: '12px' }}>HOLD AND DRAG ☰ TO REORDER</p>}
       {filteredLogs.length === 0 && <p className="empty-state">No entries here yet.</p>}
-      {displayLogs.map((log, idx) => (
-        editing ? (
-          <div
-            key={log.id}
-            onTouchStart={(e) => handleTouchStart(e, idx)}
-            onTouchMove={(e) => handleTouchMove(e, idx)}
-            onTouchEnd={handleTouchEnd}
-            style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px', touchAction: 'none' }}
-          >
-            <span style={{ color: '#555', fontSize: '22px', paddingRight: '12px', flexShrink: 0, userSelect: 'none', touchAction: 'none' }}>☰</span>
-            <div className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0 }}>
-              <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
-              <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-                <div className="session-row-title" style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clean(log.title).toUpperCase()}</div>
-                <div className="session-row-date">{log.date}</div>
+      {editing ? (
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="entries">
+            {(provided) => (
+              <div ref={provided.innerRef} {...provided.droppableProps}>
+                {displayLogs.map((log, idx) => (
+                  <Draggable key={log.id} draggableId={log.id} index={idx}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        style={{
+                          display: 'flex', alignItems: 'center',
+                          marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px',
+                          background: snapshot.isDragging ? '#1a1a1a' : 'transparent',
+                          borderRadius: snapshot.isDragging ? '12px' : '0',
+                          ...provided.draggableProps.style
+                        }}
+                      >
+                        <div {...provided.dragHandleProps} style={{ color: '#555', fontSize: '22px', paddingRight: '12px', flexShrink: 0, userSelect: 'none', display: 'flex', alignItems: 'center' }}>☰</div>
+                        <div className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0 }}>
+                          <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
+                          <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                            <div className="session-row-title" style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clean(log.title).toUpperCase()}</div>
+                            <div className="session-row-date">{log.date}</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
               </div>
-            </div>
-          </div>
-        ) : (
+            )}
+          </Droppable>
+        </DragDropContext>
+      ) : (
+        displayLogs.map(log => (
           <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
-        )
-      ))}
+        ))
+      )}
       {!editing && (
         <button onClick={() => onNewEntry(technique, selectedSubtechnique)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: '1px solid #1f1f1f', borderRadius: '12px', color: '#888', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '10px 16px', marginTop: '8px', marginBottom: '12px', width: '100%' }}>
           <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> NEW ENTRY
