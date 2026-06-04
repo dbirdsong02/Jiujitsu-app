@@ -29,7 +29,6 @@ const TECHNIQUE_ICONS = {
 const HARDCODED_UID = 'N49NTTNuEVOxzo79QyrYvGjtei02';
 const clean = (str) => (str || '').replace(/\?{2,}/g, '-');
 
-// LogRow - full width, no trash, click to open
 function LogRow({ log, onClick }) {
   const tags = log.tags || (log.technique ? [log.technique] : []);
   return (
@@ -135,7 +134,6 @@ export default function App() {
 
   const getTechniqueCount = (t) => logs.filter(l => (l.tags || [l.technique]).includes(t)).length;
   const getLogsForTechnique = (t) => logs.filter(l => (l.tags || [l.technique]).includes(t));
-  // #1 Active entries
   const getActiveEntries = () => logs.filter(l => l.subtechnique === 'Active' || (l.tags || []).includes('Active'));
 
   if (authLoading) return <LoadingScreen />;
@@ -182,7 +180,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
         <h1 className="hero-title">BJJ<br/>JOURNAL</h1>
         <div className="hero-divider"><div className="hero-line" /><span className="hero-sub">TRAINING JOURNAL</span><div className="hero-line" /></div>
       </div>
-      {/* #3 Nav buttons match recent entry width - use same padding as recent-section */}
       <div className="nav-list">
         <button className="nav-row" onClick={() => setScreen('newLog')}>
           <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">+</span></div><span className="nav-row-label">NEW ENTRY</span></div>
@@ -196,7 +193,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
           <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">◈</span></div><span className="nav-row-label">TECHNIQUES</span></div>
           <span className="nav-chevron">›</span>
         </button>
-        {/* #1 Active tab */}
         <button className="nav-row" onClick={() => setScreen('active')}>
           <div className="nav-row-left"><div className="nav-icon-circle"><span className="nav-icon">◎</span></div><span className="nav-row-label">ACTIVE</span></div>
           <span className="nav-chevron">›</span>
@@ -208,7 +204,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
           {logs.length > 0 && <button className="view-all-btn" onClick={() => setScreen('viewLogs')}>VIEW ALL ›</button>}
         </div>
         {logs.length === 0 && <div className="empty-state">No entries yet.</div>}
-        {/* #2 No trash on home recent entries */}
         {logs.slice(0, 3).map(log => (
           <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
         ))}
@@ -221,7 +216,6 @@ function HomeScreen({ setScreen, logs, setSelectedLog, user, onSignOut, deleteLo
   );
 }
 
-// #1 Active screen
 function ActiveScreen({ setScreen, logs, setSelectedLog, deleteLog }) {
   return (
     <div className="app"><div className="screen inner-screen">
@@ -517,7 +511,6 @@ function LogDetailScreen({ setScreen, log, updateLog, techniqueTree, addSubcateg
           </button>
         </div>
       </div>
-      {/* #2 Delete button at bottom of detail screen */}
       <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: '1px solid #111' }}>
         {confirmDelete ? (
           <div style={{ background: '#1a0000', border: '1px solid #6b0000', borderRadius: '12px', padding: '16px' }}>
@@ -625,24 +618,70 @@ function TechniquesScreen({ setScreen, getTechniqueCount, setSelectedTechnique, 
 
 function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, logs, setSelectedLog, deleteLog, removeSubcategory, techniqueTree, onNewEntry }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [orderedLogs, setOrderedLogs] = useState(null);
+  const dragIdx = useRef(null);
+
+  const filteredLogs = selectedSubtechnique
+    ? logs.filter(l => l.subtechnique === selectedSubtechnique || (l.tags || []).includes(selectedSubtechnique))
+    : logs;
+
+  const orderKey = `order_${technique}_${selectedSubtechnique}`;
+
+  const getOrdered = () => {
+    try {
+      const saved = localStorage.getItem(orderKey);
+      if (saved) {
+        const ids = JSON.parse(saved);
+        const mapped = ids.map(id => filteredLogs.find(l => l.id === id)).filter(Boolean);
+        const unsaved = filteredLogs.filter(l => !ids.includes(l.id));
+        return [...mapped, ...unsaved];
+      }
+    } catch(e) {}
+    return filteredLogs;
+  };
+
+  const displayLogs = orderedLogs || getOrdered();
+
+  const handleDragStart = (e, idx) => {
+    dragIdx.current = idx;
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, idx) => {
+    e.preventDefault();
+    if (dragIdx.current === null || dragIdx.current === idx) return;
+    const updated = [...displayLogs];
+    const [moved] = updated.splice(dragIdx.current, 1);
+    updated.splice(idx, 0, moved);
+    dragIdx.current = idx;
+    setOrderedLogs(updated);
+  };
+
+  const handleDragEnd = () => { dragIdx.current = null; };
+
+  const handleDone = () => {
+    try { localStorage.setItem(orderKey, JSON.stringify(displayLogs.map(l => l.id))); } catch(e) {}
+    setEditing(false);
+  };
 
   const handleDeleteSub = async () => {
     await removeSubcategory(technique, selectedSubtechnique);
     setScreen('techniques');
   };
 
-  const filteredLogs = selectedSubtechnique
-    ? logs.filter(l => 
-        l.subtechnique === selectedSubtechnique || 
-        (l.tags || []).includes(selectedSubtechnique)
-      )
-    : logs;
-
   return (
     <div className="app"><div className="screen inner-screen">
       <div className="topbar-row">
         <button className="btn-back" onClick={() => setScreen('techniques')}>← BACK</button>
-        <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          {filteredLogs.length > 1 && (
+            editing
+              ? <button onClick={handleDone} style={{ background: 'none', border: '1px solid #555', borderRadius: '8px', color: '#fff', fontFamily: 'Barlow, sans-serif', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '6px 12px' }}>DONE</button>
+              : <button onClick={() => { setOrderedLogs(getOrdered()); setEditing(true); }} style={{ background: 'none', border: '1px solid #222', borderRadius: '8px', color: '#444', fontFamily: 'Barlow, sans-serif', fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '6px 12px' }}>REORDER</button>
+          )}
+          <button className="home-btn" onClick={() => setScreen('home')}>⌂</button>
+        </div>
       </div>
       <div className="inner-header">
         <p className="inner-label">{technique.toUpperCase()}</p>
@@ -650,13 +689,35 @@ function TechniqueDetailScreen({ setScreen, technique, selectedSubtechnique, log
         <p className="inner-label">{filteredLogs.length} {filteredLogs.length === 1 ? 'ENTRY' : 'ENTRIES'}</p>
       </div>
       {filteredLogs.length === 0 && <p className="empty-state">No entries here yet.</p>}
-      {filteredLogs.map(log => (
-        <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
+      {displayLogs.map((log, idx) => (
+        editing ? (
+          <div
+            key={log.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, idx)}
+            onDragOver={(e) => handleDragOver(e, idx)}
+            onDragEnd={handleDragEnd}
+            style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', marginLeft: '-4px', marginRight: '-4px', cursor: 'grab' }}
+          >
+            <span style={{ color: '#333', fontSize: '20px', paddingRight: '10px', flexShrink: 0, userSelect: 'none' }}>☰</span>
+            <div className="session-row" style={{ flex: 1, marginBottom: 0, minWidth: 0, cursor: 'grab' }}>
+              <div className="session-row-icon" style={{ flexShrink: 0 }}>{TECHNIQUE_ICONS[log.technique] || '◈'}</div>
+              <div className="session-row-info" style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                <div className="session-row-title" style={{ fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{clean(log.title).toUpperCase()}</div>
+                <div className="session-row-date">{log.date}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <LogRow key={log.id} log={log} onClick={() => { setSelectedLog(log); setScreen('logDetail'); }} />
+        )
       ))}
-      <button onClick={() => onNewEntry(technique, selectedSubtechnique)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: '1px solid #1f1f1f', borderRadius: '12px', color: '#888', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '10px 16px', marginTop: '8px', marginBottom: '12px', width: '100%' }}>
-        <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> NEW ENTRY
-      </button>
-      {selectedSubtechnique && selectedSubtechnique !== 'Other' && (
+      {!editing && (
+        <button onClick={() => onNewEntry(technique, selectedSubtechnique)} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: '1px solid #1f1f1f', borderRadius: '12px', color: '#888', fontFamily: 'Barlow, sans-serif', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', cursor: 'pointer', padding: '10px 16px', marginTop: '8px', marginBottom: '12px', width: '100%' }}>
+          <span style={{ fontSize: '18px', lineHeight: 1 }}>+</span> NEW ENTRY
+        </button>
+      )}
+      {!editing && selectedSubtechnique && selectedSubtechnique !== 'Other' && (
         <div style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #111' }}>
           {confirmDelete ? (
             <div style={{ background: '#1a0000', border: '1px solid #6b0000', borderRadius: '12px', padding: '16px' }}>
